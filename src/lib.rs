@@ -1,18 +1,28 @@
 use std::collections::HashMap;
 
-use winnow::{combinator, prelude::*, token};
+use winnow::{
+    combinator::{self, dispatch, empty, fail, todo},
+    prelude::*,
+    token::{self, any, take},
+};
 
 /// enbyt: a Rust NBT library
 ///
 /// NBT Format Reference: https://minecraft.wiki/w/NBT_format
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     pub name: String,
     pub payload: TagPayload,
 }
 
-#[derive(Debug)]
+impl Tag {
+    pub fn new(name: String, payload: TagPayload) -> Self {
+        Self { name, payload }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum TagPayload {
     Empty,
 
@@ -36,27 +46,25 @@ pub enum TagPayload {
     LongArray(Vec<i64>),
 }
 
-fn parse_tag_type_id(input: &mut &[u8]) -> ModalResult<u8> {
-    token::one_of(0x00..=0x00C).parse_next(input)
+pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
+    dispatch! { any; // <-- TODO: can't this just be take 1 byte?
+        0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
+        _ => fail::<_, Tag, _>
+    }
+    .parse_next(input)
 }
 
-fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
-    let type_id = parse_tag_type_id(input)?;
+#[cfg(test)]
+mod tests {
+    use crate::{Tag, TagPayload, parse_nbt_tag};
 
-    match type_id {
-        0x00 => todo!("end"),
-        0x01 => todo!("byte"),
-        0x02 => todo!("short"),
-        0x03 => todo!("int"),
-        0x04 => todo!("long"),
-        0x05 => todo!("float"),
-        0x06 => todo!("double"),
-        0x07 => todo!("byte array"),
-        0x08 => todo!("string"),
-        0x09 => todo!("list"),
-        0x0a => todo!("compound"),
-        0x0b => todo!("int array"),
-        0x0c => todo!("long array"),
-        _ => combinator::fail,
+    #[test]
+    fn test_empty_tag() {
+        let mut input: &[u8] = &[0x00u8];
+
+        assert_eq!(
+            parse_nbt_tag(&mut input),
+            Ok(Tag::new(String::default(), TagPayload::Empty))
+        );
     }
 }
