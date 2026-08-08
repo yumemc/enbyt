@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
+use byteorder::{BigEndian, ByteOrder};
 use winnow::{
     combinator::{self, dispatch, empty, fail, todo},
+    error::{ContextError, InputError, ParserError, StrContext},
     prelude::*,
     token::{self, any, take},
 };
@@ -44,6 +46,24 @@ pub enum TagPayload {
     ByteArray(Vec<u8>),
     IntArray(Vec<i32>),
     LongArray(Vec<i64>),
+}
+
+pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
+    // 2 bytes of length
+    let length = take(2usize)
+        .context(StrContext::Label("string length"))
+        .parse_next(input)
+        .map(BigEndian::read_u16)?;
+
+    // n bytes of string
+    let string_bytes = take(length as usize)
+        .context(StrContext::Label("string"))
+        .parse_next(input)?;
+
+    let string = String::from_utf8(string_bytes.to_vec())
+        .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?; // TODO: add context :)
+
+    Ok(string)
 }
 
 pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
