@@ -76,7 +76,9 @@ pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Tag, TagPayload, parse_nbt_tag};
+    use byteorder::{BigEndian, ByteOrder};
+
+    use crate::{Tag, TagPayload, parse_nbt_tag, parse_string};
 
     #[test]
     fn test_empty_tag() {
@@ -86,5 +88,17 @@ mod tests {
             parse_nbt_tag(&mut input),
             Ok(Tag::new(String::default(), TagPayload::Empty))
         );
+    }
+
+    #[test]
+    fn test_parse_string() {
+        let string = "carly".to_string();
+        let string_utf8 = string.as_bytes();
+
+        let mut input: Vec<u8> = vec![0, 0];
+        BigEndian::write_u16(input.as_mut_slice(), string_utf8.len() as u16);
+        input.extend_from_slice(string_utf8);
+
+        assert_eq!(parse_string(&mut &input[..]), Ok(string));
     }
 }
