@@ -6,8 +6,8 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Tag {
-    name: String,
-    payload: TagPayload,
+    pub name: String,
+    pub payload: TagPayload,
 }
 
 #[derive(Debug)]
