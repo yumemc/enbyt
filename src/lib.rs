@@ -14,6 +14,8 @@ pub struct Tag {
 
 #[derive(Debug)]
 pub enum TagPayload {
+    Empty,
+
     Byte(i8),
     Boolean(bool),
     Short(i16),
