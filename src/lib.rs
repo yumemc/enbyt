@@ -104,6 +104,15 @@ pub mod binary {
         parse_string.parse_next(input)
     }
 
+    fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<u8>> {
+        let len = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+
+        // TODO: zero copy?
+        let bytes = take(len).parse_next(input)?;
+
+        Ok(bytes.into())
+    }
+
     pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
         dispatch! { any;
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
@@ -113,7 +122,7 @@ pub mod binary {
         0x04 => seq! { Tag { name: parse_tag_name, payload: parse_long_payload.map(TagPayload::Long) } },
         0x05 => seq! { Tag { name: parse_tag_name, payload: parse_float_payload.map(TagPayload::Float) } },
         0x06 => seq! { Tag { name: parse_tag_name, payload: parse_double_payload.map(TagPayload::Double) } },
-        // 0x07 => todo!("byte array"), 
+        0x07 => seq! { Tag { name: parse_tag_name, payload: parse_byte_array_payload.map(TagPayload::ByteArray) } },
         0x08 => seq! { Tag { name: parse_tag_name, payload: parse_string_payload.map(TagPayload::String) } },
         // 0x09 => todo!("list"),       
         // 0x0a => todo!("compound"),   
@@ -260,6 +269,23 @@ pub mod binary {
             assert_eq!(
                 parse_tag(&mut &input[..]),
                 Ok(Tag::new(tag_name, TagPayload::Double(num)))
+            );
+        }
+
+        #[hegel::test]
+        fn test_parse_byte_array_tag(tc: TestCase) {
+            let mut input: Vec<u8> = vec![0x07];
+
+            let tag_name = tc.draw(gs::text());
+            let data = tc.draw(gs::vecs(gs::integers::<u8>()));
+
+            append_nbt_string(&mut input, tag_name.clone());
+            append_number::<i32, 4>(&mut input, data.len() as i32, BigEndian::write_i32);
+            input.extend(data.iter());
+
+            assert_eq!(
+                parse_tag(&mut &input[..]),
+                Ok(Tag::new(tag_name, TagPayload::ByteArray(data)))
             );
         }
 
