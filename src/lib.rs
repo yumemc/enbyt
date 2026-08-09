@@ -146,7 +146,7 @@ mod tests {
         let tag_name = "carly".to_string();
 
         write_nbt_string(tag_name.clone(), &mut input);
-        input.extend([0x067]);
+        input.push(0x067);
 
         assert_eq!(
             parse_nbt_tag(&mut &input[..]),
