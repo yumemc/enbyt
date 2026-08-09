@@ -70,20 +70,9 @@ fn parse_nbt_tag_name(input: &mut &[u8]) -> ModalResult<String> {
 
 fn parse_nbt_byte_tag_payload(input: &mut &[u8]) -> ModalResult<i8> {
     take(1usize).parse_next(input).map(|bytes| {
-        let byte = *bytes.first().unwrap(); // uhhhhhhhhh
+        let byte = *bytes.first().unwrap();
 
-        // the reference is not tremendously clear about how signed bytes are represented using
-        // unsigned bytes so i'll make the fair assumption that two's complement is used
-
-        let negative = byte >> 7 == 1; // <-- is the MSB 1? if so that's an indication it's negative
-
-        if negative {
-            let without_msb = byte & 0b01111111; // mask off the msb
-
-            -((without_msb + 0b10000000) as i8)
-        } else {
-            byte as i8
-        }
+        byte as i8
     })
 }
 
