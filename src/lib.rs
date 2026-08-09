@@ -119,7 +119,7 @@ fn parse_nbt_non_empty_tag(type_id: u8) -> impl FnMut(&mut &[u8]) -> ModalResult
 }
 
 pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
-    dispatch! { any; // <-- TODO: can't this just be take 1 byte?
+    dispatch! { any;
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
         type_id => parse_nbt_non_empty_tag(type_id),
     }
