@@ -48,7 +48,7 @@ pub enum TagPayload {
     LongArray(Vec<i64>),
 }
 
-pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
+fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
     // 2 bytes of length
     let length = take(2usize)
         .context(StrContext::Label("string length"))
