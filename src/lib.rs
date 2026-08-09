@@ -136,11 +136,7 @@ pub mod binary {
         fn append_nbt_string(buf: &mut Vec<u8>, str: String) {
             let str_bytes = str.as_bytes();
 
-            // write length to a buffer in big endian
-            let mut len_buf = [0x00u8; 2];
-            BigEndian::write_u16(&mut len_buf, str_bytes.len() as u16);
-
-            buf.extend_from_slice(&len_buf);
+            append_number(buf, str_bytes.len() as u16, BigEndian::write_u16);
             buf.extend_from_slice(str_bytes);
         }
 
