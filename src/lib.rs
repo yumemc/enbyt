@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use byteorder::{BigEndian, ByteOrder};
 use winnow::{
-    combinator::{self, dispatch, empty, fail, seq, todo},
-    error::{ContextError, InputError, ParserError, StrContext},
+    combinator::{dispatch, empty, fail, seq},
+    error::{ContextError, StrContext},
     prelude::*,
-    token::{self, any, take},
+    token::{any, take},
 };
 
 /// enbyt: a Rust NBT library
