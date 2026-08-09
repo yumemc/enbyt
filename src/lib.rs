@@ -114,10 +114,14 @@ mod tests {
 
     use crate::{Tag, TagPayload, parse_nbt_tag, parse_string};
 
-    fn write_nbt_string(str: String, buf: &mut Vec<u8>) {
+    fn write_nbt_string(buf: &mut Vec<u8>, str: String) {
         let str_bytes = str.as_bytes();
 
-        BigEndian::write_u16(buf.as_mut_slice(), str_bytes.len() as u16);
+        // write length to a buffer in big endian
+        let mut len_buf = [0x00u8; 2];
+        BigEndian::write_u16(&mut len_buf, str_bytes.len() as u16);
+
+        buf.extend_from_slice(&len_buf);
         buf.extend_from_slice(str_bytes);
     }
 
@@ -132,20 +136,20 @@ mod tests {
     }
     #[test]
     fn test_parse_string() {
-        let mut input: Vec<u8> = vec![0, 0];
+        let mut input: Vec<u8> = vec![];
         let string = "carly".to_string();
 
-        write_nbt_string(string.clone(), &mut input);
+        write_nbt_string(&mut input, string.clone());
 
         assert_eq!(parse_string(&mut &input[..]), Ok(string));
     }
 
     #[test]
     fn test_parse_byte_tag() {
-        let mut input: Vec<u8> = vec![0x01, 0];
+        let mut input: Vec<u8> = vec![];
         let tag_name = "carly".to_string();
 
-        write_nbt_string(tag_name.clone(), &mut input);
+        write_nbt_string(&mut input, tag_name.clone());
         input.push(0x067);
 
         assert_eq!(
