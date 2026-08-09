@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use byteorder::{BigEndian, ByteOrder};
 use winnow::{
-    combinator::{self, dispatch, empty, fail, todo},
+    combinator::{self, dispatch, empty, fail, seq, todo},
     error::{ContextError, InputError, ParserError, StrContext},
     prelude::*,
     token::{self, any, take},
@@ -88,40 +88,23 @@ fn parse_nbt_byte_tag_payload(input: &mut &[u8]) -> ModalResult<i8> {
     })
 }
 
-fn parse_nbt_non_empty_tag(type_id: u8) -> impl FnMut(&mut &[u8]) -> ModalResult<Tag> {
-    move |input: &mut &[u8]| {
-        let tag_name = parse_nbt_tag_name
-            .context(StrContext::Label("NBT tag name"))
-            .parse_next(input);
-
-        // TODO: this surely can be simplified, perhaps not a ModalResult but a parser.
-        let payload: ModalResult<TagPayload> = match type_id {
-            0x01 => Ok(TagPayload::Byte(
-                parse_nbt_byte_tag_payload.parse_next(input)?,
-            )),
-            0x02 => todo!("short"),
-            0x03 => todo!("int"),
-            0x04 => todo!("long"),
-            0x05 => todo!("float"),
-            0x06 => todo!("double"),
-            0x07 => todo!("byte array"),
-            0x08 => todo!("string"),
-            0x09 => todo!("list"),
-            0x0a => todo!("compound"),
-            0x0b => todo!("int array"),
-            0x0c => todo!("long array"),
-            // _ => |_: &mut &[u8]| Err(winnow::error::ErrMode::Cut(ContextError::new())),
-            _ => fail::<_, _, _>.parse_next(input),
-        };
-
-        todo!()
-    }
-}
-
 pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
     dispatch! { any;
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
-        type_id => parse_nbt_non_empty_tag(type_id),
+        0x01 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_byte_tag_payload.map(TagPayload::Byte) } },
+        // 0x02 => todo!("short"),      
+        // 0x03 => todo!("int"),        
+        // 0x04 => todo!("long"),       
+        // 0x05 => todo!("float"),      
+        // 0x06 => todo!("double"),     
+        // 0x07 => todo!("byte array"), 
+        // 0x08 => todo!("string"),     
+        // 0x09 => todo!("list"),       
+        // 0x0a => todo!("compound"),   
+        // 0x0b => todo!("int array"),  
+        // 0x0c => todo!("long array"), 
+        _ => fail::<_,_,_>
+        // type_id => parse_nbt_non_empty_tag(type_id),
     }
     .parse_next(input)
 }
