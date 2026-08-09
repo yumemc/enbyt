@@ -96,6 +96,10 @@ fn parse_nbt_double_tag_payload(input: &mut &[u8]) -> ModalResult<f64> {
     take(8usize).parse_next(input).map(BigEndian::read_f64)
 }
 
+fn parse_nbt_string_tag_payload(input: &mut &[u8]) -> ModalResult<String> {
+    parse_string.parse_next(input)
+}
+
 pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
     dispatch! { any;
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
@@ -106,7 +110,7 @@ pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
         0x05 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_float_tag_payload.map(TagPayload::Float) } },
         0x06 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_double_tag_payload.map(TagPayload::Double) } },
         // 0x07 => todo!("byte array"), 
-        // 0x08 => todo!("string"),     
+        0x08 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_string_tag_payload.map(TagPayload::String) } },
         // 0x09 => todo!("list"),       
         // 0x0a => todo!("compound"),   
         // 0x0b => todo!("int array"),  
@@ -264,6 +268,22 @@ mod tests {
         assert_eq!(
             parse_nbt_tag(&mut &input[..]),
             Ok(Tag::new(tag_name, TagPayload::Double(num)))
+        );
+    }
+    #[hegel::test]
+
+    fn test_parse_string_tag(tc: TestCase) {
+        let mut input: Vec<u8> = vec![0x08];
+
+        let tag_name = tc.draw(gs::text());
+        let string = tc.draw(gs::text());
+
+        write_nbt_string(&mut input, tag_name.clone());
+        write_nbt_string(&mut input, string.clone());
+
+        assert_eq!(
+            parse_nbt_tag(&mut &input[..]),
+            Ok(Tag::new(tag_name, TagPayload::String(string)))
         );
     }
 }
