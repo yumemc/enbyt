@@ -29,7 +29,6 @@ pub enum TagPayload {
     Empty,
 
     Byte(i8),
-    Boolean(bool),
     Short(i16),
     Int(i32),
     Long(i64),
