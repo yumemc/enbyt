@@ -1,3 +1,6 @@
+/// enbyt: a Rust NBT library
+///
+/// NBT Format Reference: https://minecraft.wiki/w/NBT_format
 use std::collections::HashMap;
 
 use byteorder::{BigEndian, ByteOrder};
@@ -7,10 +10,6 @@ use winnow::{
     prelude::*,
     token::{any, take},
 };
-
-/// enbyt: a Rust NBT library
-///
-/// NBT Format Reference: https://minecraft.wiki/w/NBT_format
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
