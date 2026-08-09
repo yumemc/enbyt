@@ -68,11 +68,11 @@ pub mod binary {
         Ok(string)
     }
 
-    fn parse_nbt_tag_name(input: &mut &[u8]) -> ModalResult<String> {
+    fn parse_tag_name(input: &mut &[u8]) -> ModalResult<String> {
         parse_string.parse_next(input)
     }
 
-    fn parse_nbt_byte_tag_payload(input: &mut &[u8]) -> ModalResult<i8> {
+    fn parse_byte_payload(input: &mut &[u8]) -> ModalResult<i8> {
         take(1usize).parse_next(input).map(|bytes| {
             let byte = *bytes.first().unwrap();
 
@@ -80,41 +80,41 @@ pub mod binary {
         })
     }
 
-    fn parse_nbt_short_tag_payload(input: &mut &[u8]) -> ModalResult<i16> {
+    fn parse_short_payload(input: &mut &[u8]) -> ModalResult<i16> {
         take(2usize).parse_next(input).map(BigEndian::read_i16)
     }
 
-    fn parse_nbt_int_tag_payload(input: &mut &[u8]) -> ModalResult<i32> {
+    fn parse_int_payload(input: &mut &[u8]) -> ModalResult<i32> {
         take(4usize).parse_next(input).map(BigEndian::read_i32)
     }
 
-    fn parse_nbt_long_tag_payload(input: &mut &[u8]) -> ModalResult<i64> {
+    fn parse_long_payload(input: &mut &[u8]) -> ModalResult<i64> {
         take(8usize).parse_next(input).map(BigEndian::read_i64)
     }
 
-    fn parse_nbt_float_tag_payload(input: &mut &[u8]) -> ModalResult<f32> {
+    fn parse_float_payload(input: &mut &[u8]) -> ModalResult<f32> {
         take(4usize).parse_next(input).map(BigEndian::read_f32)
     }
 
-    fn parse_nbt_double_tag_payload(input: &mut &[u8]) -> ModalResult<f64> {
+    fn parse_double_payload(input: &mut &[u8]) -> ModalResult<f64> {
         take(8usize).parse_next(input).map(BigEndian::read_f64)
     }
 
-    fn parse_nbt_string_tag_payload(input: &mut &[u8]) -> ModalResult<String> {
+    fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
         parse_string.parse_next(input)
     }
 
-    pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
+    pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
         dispatch! { any;
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
-        0x01 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_byte_tag_payload.map(TagPayload::Byte) } },
-        0x02 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_short_tag_payload.map(TagPayload::Short) } },
-        0x03 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_int_tag_payload.map(TagPayload::Int) } },
-        0x04 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_long_tag_payload.map(TagPayload::Long) } },
-        0x05 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_float_tag_payload.map(TagPayload::Float) } },
-        0x06 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_double_tag_payload.map(TagPayload::Double) } },
+        0x01 => seq! { Tag { name: parse_tag_name, payload: parse_byte_payload.map(TagPayload::Byte) } },
+        0x02 => seq! { Tag { name: parse_tag_name, payload: parse_short_payload.map(TagPayload::Short) } },
+        0x03 => seq! { Tag { name: parse_tag_name, payload: parse_int_payload.map(TagPayload::Int) } },
+        0x04 => seq! { Tag { name: parse_tag_name, payload: parse_long_payload.map(TagPayload::Long) } },
+        0x05 => seq! { Tag { name: parse_tag_name, payload: parse_float_payload.map(TagPayload::Float) } },
+        0x06 => seq! { Tag { name: parse_tag_name, payload: parse_double_payload.map(TagPayload::Double) } },
         // 0x07 => todo!("byte array"), 
-        0x08 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_string_tag_payload.map(TagPayload::String) } },
+        0x08 => seq! { Tag { name: parse_tag_name, payload: parse_string_payload.map(TagPayload::String) } },
         // 0x09 => todo!("list"),       
         // 0x0a => todo!("compound"),   
         // 0x0b => todo!("int array"),  
@@ -149,7 +149,7 @@ pub mod binary {
             let mut input: &[u8] = &[0x00u8];
 
             assert_eq!(
-                parse_nbt_tag(&mut input),
+                parse_tag(&mut input),
                 Ok(Tag::new(String::default(), TagPayload::Empty))
             );
         }
@@ -175,7 +175,7 @@ pub mod binary {
             input.push(byte as u8);
 
             assert_eq!(
-                parse_nbt_tag(&mut &input[..]),
+                parse_tag(&mut &input[..]),
                 Ok(Tag::new(tag_name, TagPayload::Byte(byte)))
             );
         }
@@ -194,7 +194,7 @@ pub mod binary {
             input.extend(num_buf);
 
             assert_eq!(
-                parse_nbt_tag(&mut &input[..]),
+                parse_tag(&mut &input[..]),
                 Ok(Tag::new(tag_name, TagPayload::Short(num)))
             );
         }
@@ -213,7 +213,7 @@ pub mod binary {
             input.extend(num_buf);
 
             assert_eq!(
-                parse_nbt_tag(&mut &input[..]),
+                parse_tag(&mut &input[..]),
                 Ok(Tag::new(tag_name, TagPayload::Int(num)))
             );
         }
@@ -232,7 +232,7 @@ pub mod binary {
             input.extend(num_buf);
 
             assert_eq!(
-                parse_nbt_tag(&mut &input[..]),
+                parse_tag(&mut &input[..]),
                 Ok(Tag::new(tag_name, TagPayload::Long(num)))
             );
         }
@@ -251,7 +251,7 @@ pub mod binary {
             input.extend(num_buf);
 
             assert_eq!(
-                parse_nbt_tag(&mut &input[..]),
+                parse_tag(&mut &input[..]),
                 Ok(Tag::new(tag_name, TagPayload::Float(num)))
             );
         }
@@ -270,12 +270,12 @@ pub mod binary {
             input.extend(num_buf);
 
             assert_eq!(
-                parse_nbt_tag(&mut &input[..]),
+                parse_tag(&mut &input[..]),
                 Ok(Tag::new(tag_name, TagPayload::Double(num)))
             );
         }
-        #[hegel::test]
 
+        #[hegel::test]
         fn test_parse_string_tag(tc: TestCase) {
             let mut input: Vec<u8> = vec![0x08];
 
@@ -286,7 +286,7 @@ pub mod binary {
             write_nbt_string(&mut input, string.clone());
 
             assert_eq!(
-                parse_nbt_tag(&mut &input[..]),
+                parse_tag(&mut &input[..]),
                 Ok(Tag::new(tag_name, TagPayload::String(string)))
             );
         }
