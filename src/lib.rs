@@ -136,12 +136,12 @@ pub mod binary {
         fn append_nbt_string(buf: &mut Vec<u8>, str: String) {
             let str_bytes = str.as_bytes();
 
-            append_number(buf, str_bytes.len() as u16, BigEndian::write_u16);
+            append_number::<_, 2>(buf, str_bytes.len() as u16, BigEndian::write_u16);
             buf.extend_from_slice(str_bytes);
         }
 
-        fn append_number<N>(buf: &mut Vec<u8>, num: N, write_fn: fn(&mut [u8], N)) {
-            let mut buf2 = [0x00u8; 8];
+        fn append_number<N, const B: usize>(buf: &mut Vec<u8>, num: N, write_fn: fn(&mut [u8], N)) {
+            let mut buf2 = [0x00u8; B];
             write_fn(&mut buf2, num);
 
             buf.extend_from_slice(&buf2[..]);
@@ -191,7 +191,7 @@ pub mod binary {
             let num = tc.draw(gs::integers::<i16>());
 
             append_nbt_string(&mut input, tag_name.clone());
-            append_number(&mut input, num, BigEndian::write_i16);
+            append_number::<_, 2>(&mut input, num, BigEndian::write_i16);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -207,7 +207,7 @@ pub mod binary {
             let num = tc.draw(gs::integers::<i32>());
 
             append_nbt_string(&mut input, tag_name.clone());
-            append_number(&mut input, num, BigEndian::write_i32);
+            append_number::<_, 4>(&mut input, num, BigEndian::write_i32);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -223,7 +223,7 @@ pub mod binary {
             let num = tc.draw(gs::integers::<i64>());
 
             append_nbt_string(&mut input, tag_name.clone());
-            append_number(&mut input, num, BigEndian::write_i64);
+            append_number::<_, 8>(&mut input, num, BigEndian::write_i64);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -239,7 +239,7 @@ pub mod binary {
             let num = tc.draw(gs::floats::<f32>());
 
             append_nbt_string(&mut input, tag_name.clone());
-            append_number(&mut input, num, BigEndian::write_f32);
+            append_number::<_, 4>(&mut input, num, BigEndian::write_f32);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -255,7 +255,7 @@ pub mod binary {
             let num = tc.draw(gs::floats::<f64>());
 
             append_nbt_string(&mut input, tag_name.clone());
-            append_number(&mut input, num, BigEndian::write_f64);
+            append_number::<_, 8>(&mut input, num, BigEndian::write_f64);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
