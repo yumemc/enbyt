@@ -94,8 +94,11 @@ fn parse_nbt_non_empty_tag(type_id: u8) -> impl FnMut(&mut &[u8]) -> ModalResult
             .context(StrContext::Label("NBT tag name"))
             .parse_next(input);
 
-        match type_id {
-            0x01 => todo!("byte"),
+        // TODO: this surely can be simplified, perhaps not a ModalResult but a parser.
+        let payload: ModalResult<TagPayload> = match type_id {
+            0x01 => Ok(TagPayload::Byte(
+                parse_nbt_byte_tag_payload.parse_next(input)?,
+            )),
             0x02 => todo!("short"),
             0x03 => todo!("int"),
             0x04 => todo!("long"),
@@ -109,7 +112,9 @@ fn parse_nbt_non_empty_tag(type_id: u8) -> impl FnMut(&mut &[u8]) -> ModalResult
             0x0c => todo!("long array"),
             // _ => |_: &mut &[u8]| Err(winnow::error::ErrMode::Cut(ContextError::new())),
             _ => fail::<_, _, _>.parse_next(input),
-        }
+        };
+
+        todo!()
     }
 }
 
@@ -151,5 +156,19 @@ mod tests {
         write_nbt_string(string.clone(), &mut input);
 
         assert_eq!(parse_string(&mut &input[..]), Ok(string));
+    }
+
+    #[test]
+    fn test_parse_byte_tag() {
+        let mut input: Vec<u8> = vec![0x01, 0];
+        let tag_name = "carly".to_string();
+
+        write_nbt_string(tag_name.clone(), &mut input);
+        input.extend([0x067]);
+
+        assert_eq!(
+            parse_nbt_tag(&mut &input[..]),
+            Ok(Tag::new(tag_name, TagPayload::Byte(0x67)))
+        );
     }
 }
