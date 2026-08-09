@@ -100,10 +100,6 @@ pub mod binary {
         take(8usize).parse_next(input).map(BigEndian::read_f64)
     }
 
-    fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
-        parse_string.parse_next(input)
-    }
-
     fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<u8>> {
         let len = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
 
@@ -111,6 +107,10 @@ pub mod binary {
         let bytes = take(len).parse_next(input)?;
 
         Ok(bytes.into())
+    }
+
+    fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
+        parse_string.parse_next(input)
     }
 
     pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
