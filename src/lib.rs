@@ -111,6 +111,8 @@ pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
 #[cfg(test)]
 mod tests {
     use byteorder::{BigEndian, ByteOrder};
+    use hegel::TestCase;
+    use hegel::generators as gs;
 
     use crate::{Tag, TagPayload, parse_nbt_tag, parse_string};
 
@@ -134,27 +136,30 @@ mod tests {
             Ok(Tag::new(String::default(), TagPayload::Empty))
         );
     }
-    #[test]
-    fn test_parse_string() {
+
+    #[hegel::test]
+    fn test_parse_string(tc: TestCase) {
+        let string = tc.draw(gs::text());
         let mut input: Vec<u8> = vec![];
-        let string = "carly".to_string();
 
         write_nbt_string(&mut input, string.clone());
 
         assert_eq!(parse_string(&mut &input[..]), Ok(string));
     }
 
-    #[test]
-    fn test_parse_byte_tag() {
+    #[hegel::test]
+    fn test_parse_byte_tag(tc: TestCase) {
         let mut input: Vec<u8> = vec![0x01];
-        let tag_name = "carly".to_string();
+
+        let tag_name = tc.draw(gs::text());
+        let byte = tc.draw(gs::integers::<i8>());
 
         write_nbt_string(&mut input, tag_name.clone());
-        input.push(0x67);
+        input.push(byte as u8);
 
         assert_eq!(
             parse_nbt_tag(&mut &input[..]),
-            Ok(Tag::new(tag_name, TagPayload::Byte(0x67)))
+            Ok(Tag::new(tag_name, TagPayload::Byte(byte)))
         );
     }
 }
