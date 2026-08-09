@@ -3,14 +3,6 @@
 /// NBT Format Reference: https://minecraft.wiki/w/NBT_format
 use std::collections::HashMap;
 
-use byteorder::{BigEndian, ByteOrder};
-use winnow::{
-    combinator::{dispatch, empty, fail, seq},
-    error::{ContextError, StrContext},
-    prelude::*,
-    token::{any, take},
-};
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     pub name: String,
@@ -46,62 +38,74 @@ pub enum TagPayload {
     LongArray(Vec<i64>),
 }
 
-fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
-    // 2 bytes of length
-    let length = take(2usize)
-        .context(StrContext::Label("string length"))
-        .parse_next(input)
-        .map(BigEndian::read_u16)?;
+pub mod binary {
 
-    // n bytes of string
-    let string_bytes = take(length as usize)
-        .context(StrContext::Label("string"))
-        .parse_next(input)?;
+    use byteorder::{BigEndian, ByteOrder};
+    use winnow::{
+        combinator::{dispatch, empty, fail, seq},
+        error::{ContextError, StrContext},
+        prelude::*,
+        token::{any, take},
+    };
 
-    let string = String::from_utf8(string_bytes.to_vec())
-        .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?; // TODO: add context :)
+    use crate::{Tag, TagPayload};
 
-    Ok(string)
-}
+    fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
+        // 2 bytes of length
+        let length = take(2usize)
+            .context(StrContext::Label("string length"))
+            .parse_next(input)
+            .map(BigEndian::read_u16)?;
 
-fn parse_nbt_tag_name(input: &mut &[u8]) -> ModalResult<String> {
-    parse_string.parse_next(input)
-}
+        // n bytes of string
+        let string_bytes = take(length as usize)
+            .context(StrContext::Label("string"))
+            .parse_next(input)?;
 
-fn parse_nbt_byte_tag_payload(input: &mut &[u8]) -> ModalResult<i8> {
-    take(1usize).parse_next(input).map(|bytes| {
-        let byte = *bytes.first().unwrap();
+        let string = String::from_utf8(string_bytes.to_vec())
+            .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?; // TODO: add context :)
 
-        byte as i8
-    })
-}
+        Ok(string)
+    }
 
-fn parse_nbt_short_tag_payload(input: &mut &[u8]) -> ModalResult<i16> {
-    take(2usize).parse_next(input).map(BigEndian::read_i16)
-}
+    fn parse_nbt_tag_name(input: &mut &[u8]) -> ModalResult<String> {
+        parse_string.parse_next(input)
+    }
 
-fn parse_nbt_int_tag_payload(input: &mut &[u8]) -> ModalResult<i32> {
-    take(4usize).parse_next(input).map(BigEndian::read_i32)
-}
+    fn parse_nbt_byte_tag_payload(input: &mut &[u8]) -> ModalResult<i8> {
+        take(1usize).parse_next(input).map(|bytes| {
+            let byte = *bytes.first().unwrap();
 
-fn parse_nbt_long_tag_payload(input: &mut &[u8]) -> ModalResult<i64> {
-    take(8usize).parse_next(input).map(BigEndian::read_i64)
-}
+            byte as i8
+        })
+    }
 
-fn parse_nbt_float_tag_payload(input: &mut &[u8]) -> ModalResult<f32> {
-    take(4usize).parse_next(input).map(BigEndian::read_f32)
-}
+    fn parse_nbt_short_tag_payload(input: &mut &[u8]) -> ModalResult<i16> {
+        take(2usize).parse_next(input).map(BigEndian::read_i16)
+    }
 
-fn parse_nbt_double_tag_payload(input: &mut &[u8]) -> ModalResult<f64> {
-    take(8usize).parse_next(input).map(BigEndian::read_f64)
-}
+    fn parse_nbt_int_tag_payload(input: &mut &[u8]) -> ModalResult<i32> {
+        take(4usize).parse_next(input).map(BigEndian::read_i32)
+    }
 
-fn parse_nbt_string_tag_payload(input: &mut &[u8]) -> ModalResult<String> {
-    parse_string.parse_next(input)
-}
+    fn parse_nbt_long_tag_payload(input: &mut &[u8]) -> ModalResult<i64> {
+        take(8usize).parse_next(input).map(BigEndian::read_i64)
+    }
 
-pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
-    dispatch! { any;
+    fn parse_nbt_float_tag_payload(input: &mut &[u8]) -> ModalResult<f32> {
+        take(4usize).parse_next(input).map(BigEndian::read_f32)
+    }
+
+    fn parse_nbt_double_tag_payload(input: &mut &[u8]) -> ModalResult<f64> {
+        take(8usize).parse_next(input).map(BigEndian::read_f64)
+    }
+
+    fn parse_nbt_string_tag_payload(input: &mut &[u8]) -> ModalResult<String> {
+        parse_string.parse_next(input)
+    }
+
+    pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
+        dispatch! { any;
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
         0x01 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_byte_tag_payload.map(TagPayload::Byte) } },
         0x02 => seq! { Tag { name: parse_nbt_tag_name, payload: parse_nbt_short_tag_payload.map(TagPayload::Short) } },
@@ -119,171 +123,172 @@ pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
         // type_id => parse_nbt_non_empty_tag(type_id),
     }
     .parse_next(input)
-}
-
-#[cfg(test)]
-mod tests {
-    use byteorder::{BigEndian, ByteOrder};
-    use hegel::TestCase;
-    use hegel::generators as gs;
-
-    use crate::{Tag, TagPayload, parse_nbt_tag, parse_string};
-
-    fn write_nbt_string(buf: &mut Vec<u8>, str: String) {
-        let str_bytes = str.as_bytes();
-
-        // write length to a buffer in big endian
-        let mut len_buf = [0x00u8; 2];
-        BigEndian::write_u16(&mut len_buf, str_bytes.len() as u16);
-
-        buf.extend_from_slice(&len_buf);
-        buf.extend_from_slice(str_bytes);
     }
 
-    #[test]
-    fn test_empty_tag() {
-        let mut input: &[u8] = &[0x00u8];
+    #[cfg(test)]
+    mod tests {
+        use byteorder::{BigEndian, ByteOrder};
+        use hegel::TestCase;
+        use hegel::generators as gs;
 
-        assert_eq!(
-            parse_nbt_tag(&mut input),
-            Ok(Tag::new(String::default(), TagPayload::Empty))
-        );
-    }
+        use crate::binary::*;
 
-    #[hegel::test]
-    fn test_parse_string(tc: TestCase) {
-        let string = tc.draw(gs::text());
-        let mut input: Vec<u8> = vec![];
+        fn write_nbt_string(buf: &mut Vec<u8>, str: String) {
+            let str_bytes = str.as_bytes();
 
-        write_nbt_string(&mut input, string.clone());
+            // write length to a buffer in big endian
+            let mut len_buf = [0x00u8; 2];
+            BigEndian::write_u16(&mut len_buf, str_bytes.len() as u16);
 
-        assert_eq!(parse_string(&mut &input[..]), Ok(string));
-    }
+            buf.extend_from_slice(&len_buf);
+            buf.extend_from_slice(str_bytes);
+        }
 
-    #[hegel::test]
-    fn test_parse_byte_tag(tc: TestCase) {
-        let mut input: Vec<u8> = vec![0x01];
+        #[test]
+        fn test_empty_tag() {
+            let mut input: &[u8] = &[0x00u8];
 
-        let tag_name = tc.draw(gs::text());
-        let byte = tc.draw(gs::integers::<i8>());
+            assert_eq!(
+                parse_nbt_tag(&mut input),
+                Ok(Tag::new(String::default(), TagPayload::Empty))
+            );
+        }
 
-        write_nbt_string(&mut input, tag_name.clone());
-        input.push(byte as u8);
+        #[hegel::test]
+        fn test_parse_string(tc: TestCase) {
+            let string = tc.draw(gs::text());
+            let mut input: Vec<u8> = vec![];
 
-        assert_eq!(
-            parse_nbt_tag(&mut &input[..]),
-            Ok(Tag::new(tag_name, TagPayload::Byte(byte)))
-        );
-    }
+            write_nbt_string(&mut input, string.clone());
 
-    #[hegel::test]
-    fn test_parse_short_tag(tc: TestCase) {
-        let mut input: Vec<u8> = vec![0x02];
+            assert_eq!(parse_string(&mut &input[..]), Ok(string));
+        }
 
-        let tag_name = tc.draw(gs::text());
-        let num = tc.draw(gs::integers::<i16>());
+        #[hegel::test]
+        fn test_parse_byte_tag(tc: TestCase) {
+            let mut input: Vec<u8> = vec![0x01];
 
-        let mut num_buf = [0x00u8; 2];
-        BigEndian::write_i16(&mut num_buf, num);
+            let tag_name = tc.draw(gs::text());
+            let byte = tc.draw(gs::integers::<i8>());
 
-        write_nbt_string(&mut input, tag_name.clone());
-        input.extend(num_buf);
+            write_nbt_string(&mut input, tag_name.clone());
+            input.push(byte as u8);
 
-        assert_eq!(
-            parse_nbt_tag(&mut &input[..]),
-            Ok(Tag::new(tag_name, TagPayload::Short(num)))
-        );
-    }
+            assert_eq!(
+                parse_nbt_tag(&mut &input[..]),
+                Ok(Tag::new(tag_name, TagPayload::Byte(byte)))
+            );
+        }
 
-    #[hegel::test]
-    fn test_parse_int_tag(tc: TestCase) {
-        let mut input: Vec<u8> = vec![0x03];
+        #[hegel::test]
+        fn test_parse_short_tag(tc: TestCase) {
+            let mut input: Vec<u8> = vec![0x02];
 
-        let tag_name = tc.draw(gs::text());
-        let num = tc.draw(gs::integers::<i32>());
+            let tag_name = tc.draw(gs::text());
+            let num = tc.draw(gs::integers::<i16>());
 
-        let mut num_buf = [0x00u8; 4];
-        BigEndian::write_i32(&mut num_buf, num);
+            let mut num_buf = [0x00u8; 2];
+            BigEndian::write_i16(&mut num_buf, num);
 
-        write_nbt_string(&mut input, tag_name.clone());
-        input.extend(num_buf);
+            write_nbt_string(&mut input, tag_name.clone());
+            input.extend(num_buf);
 
-        assert_eq!(
-            parse_nbt_tag(&mut &input[..]),
-            Ok(Tag::new(tag_name, TagPayload::Int(num)))
-        );
-    }
+            assert_eq!(
+                parse_nbt_tag(&mut &input[..]),
+                Ok(Tag::new(tag_name, TagPayload::Short(num)))
+            );
+        }
 
-    #[hegel::test]
-    fn test_parse_long_tag(tc: TestCase) {
-        let mut input: Vec<u8> = vec![0x04];
+        #[hegel::test]
+        fn test_parse_int_tag(tc: TestCase) {
+            let mut input: Vec<u8> = vec![0x03];
 
-        let tag_name = tc.draw(gs::text());
-        let num = tc.draw(gs::integers::<i64>());
+            let tag_name = tc.draw(gs::text());
+            let num = tc.draw(gs::integers::<i32>());
 
-        let mut num_buf = [0x00u8; 8];
-        BigEndian::write_i64(&mut num_buf, num);
+            let mut num_buf = [0x00u8; 4];
+            BigEndian::write_i32(&mut num_buf, num);
 
-        write_nbt_string(&mut input, tag_name.clone());
-        input.extend(num_buf);
+            write_nbt_string(&mut input, tag_name.clone());
+            input.extend(num_buf);
 
-        assert_eq!(
-            parse_nbt_tag(&mut &input[..]),
-            Ok(Tag::new(tag_name, TagPayload::Long(num)))
-        );
-    }
+            assert_eq!(
+                parse_nbt_tag(&mut &input[..]),
+                Ok(Tag::new(tag_name, TagPayload::Int(num)))
+            );
+        }
 
-    #[hegel::test]
-    fn test_parse_float_tag(tc: TestCase) {
-        let mut input: Vec<u8> = vec![0x05];
+        #[hegel::test]
+        fn test_parse_long_tag(tc: TestCase) {
+            let mut input: Vec<u8> = vec![0x04];
 
-        let tag_name = tc.draw(gs::text());
-        let num = tc.draw(gs::floats::<f32>());
+            let tag_name = tc.draw(gs::text());
+            let num = tc.draw(gs::integers::<i64>());
 
-        let mut num_buf = [0x00u8; 4];
-        BigEndian::write_f32(&mut num_buf, num);
+            let mut num_buf = [0x00u8; 8];
+            BigEndian::write_i64(&mut num_buf, num);
 
-        write_nbt_string(&mut input, tag_name.clone());
-        input.extend(num_buf);
+            write_nbt_string(&mut input, tag_name.clone());
+            input.extend(num_buf);
 
-        assert_eq!(
-            parse_nbt_tag(&mut &input[..]),
-            Ok(Tag::new(tag_name, TagPayload::Float(num)))
-        );
-    }
+            assert_eq!(
+                parse_nbt_tag(&mut &input[..]),
+                Ok(Tag::new(tag_name, TagPayload::Long(num)))
+            );
+        }
 
-    #[hegel::test]
-    fn test_parse_double_tag(tc: TestCase) {
-        let mut input: Vec<u8> = vec![0x06];
+        #[hegel::test]
+        fn test_parse_float_tag(tc: TestCase) {
+            let mut input: Vec<u8> = vec![0x05];
 
-        let tag_name = tc.draw(gs::text());
-        let num = tc.draw(gs::floats::<f64>());
+            let tag_name = tc.draw(gs::text());
+            let num = tc.draw(gs::floats::<f32>());
 
-        let mut num_buf = [0x00u8; 8];
-        BigEndian::write_f64(&mut num_buf, num);
+            let mut num_buf = [0x00u8; 4];
+            BigEndian::write_f32(&mut num_buf, num);
 
-        write_nbt_string(&mut input, tag_name.clone());
-        input.extend(num_buf);
+            write_nbt_string(&mut input, tag_name.clone());
+            input.extend(num_buf);
 
-        assert_eq!(
-            parse_nbt_tag(&mut &input[..]),
-            Ok(Tag::new(tag_name, TagPayload::Double(num)))
-        );
-    }
-    #[hegel::test]
+            assert_eq!(
+                parse_nbt_tag(&mut &input[..]),
+                Ok(Tag::new(tag_name, TagPayload::Float(num)))
+            );
+        }
 
-    fn test_parse_string_tag(tc: TestCase) {
-        let mut input: Vec<u8> = vec![0x08];
+        #[hegel::test]
+        fn test_parse_double_tag(tc: TestCase) {
+            let mut input: Vec<u8> = vec![0x06];
 
-        let tag_name = tc.draw(gs::text());
-        let string = tc.draw(gs::text());
+            let tag_name = tc.draw(gs::text());
+            let num = tc.draw(gs::floats::<f64>());
 
-        write_nbt_string(&mut input, tag_name.clone());
-        write_nbt_string(&mut input, string.clone());
+            let mut num_buf = [0x00u8; 8];
+            BigEndian::write_f64(&mut num_buf, num);
 
-        assert_eq!(
-            parse_nbt_tag(&mut &input[..]),
-            Ok(Tag::new(tag_name, TagPayload::String(string)))
-        );
+            write_nbt_string(&mut input, tag_name.clone());
+            input.extend(num_buf);
+
+            assert_eq!(
+                parse_nbt_tag(&mut &input[..]),
+                Ok(Tag::new(tag_name, TagPayload::Double(num)))
+            );
+        }
+        #[hegel::test]
+
+        fn test_parse_string_tag(tc: TestCase) {
+            let mut input: Vec<u8> = vec![0x08];
+
+            let tag_name = tc.draw(gs::text());
+            let string = tc.draw(gs::text());
+
+            write_nbt_string(&mut input, tag_name.clone());
+            write_nbt_string(&mut input, string.clone());
+
+            assert_eq!(
+                parse_nbt_tag(&mut &input[..]),
+                Ok(Tag::new(tag_name, TagPayload::String(string)))
+            );
+        }
     }
 }
