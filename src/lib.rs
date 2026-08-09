@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_parse_byte_tag() {
-        let mut input: Vec<u8> = vec![];
+        let mut input: Vec<u8> = vec![0x01];
         let tag_name = "carly".to_string();
 
         write_nbt_string(&mut input, tag_name.clone());
