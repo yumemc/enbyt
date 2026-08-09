@@ -66,10 +66,39 @@ fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
     Ok(string)
 }
 
+fn parse_nbt_tag_name(input: &mut &[u8]) -> ModalResult<String> {
+    parse_string.parse_next(input)
+}
+
+fn parse_nbt_non_empty_tag(type_id: u8) -> impl FnMut(&mut &[u8]) -> ModalResult<Tag> {
+    move |input: &mut &[u8]| {
+        let tag_name = parse_nbt_tag_name
+            .context(StrContext::Label("NBT tag name"))
+            .parse_next(input);
+
+        match type_id {
+            0x01 => todo!("byte"),
+            0x02 => todo!("short"),
+            0x03 => todo!("int"),
+            0x04 => todo!("long"),
+            0x05 => todo!("float"),
+            0x06 => todo!("double"),
+            0x07 => todo!("byte array"),
+            0x08 => todo!("string"),
+            0x09 => todo!("list"),
+            0x0a => todo!("compound"),
+            0x0b => todo!("int array"),
+            0x0c => todo!("long array"),
+            // _ => |_: &mut &[u8]| Err(winnow::error::ErrMode::Cut(ContextError::new())),
+            _ => fail::<_, _, _>.parse_next(input),
+        }
+    }
+}
+
 pub fn parse_nbt_tag(input: &mut &[u8]) -> ModalResult<Tag> {
     dispatch! { any; // <-- TODO: can't this just be take 1 byte?
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
-        _ => fail::<_, Tag, _>
+        type_id => parse_nbt_non_empty_tag(type_id),
     }
     .parse_next(input)
 }
