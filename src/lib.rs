@@ -133,7 +133,7 @@ pub mod binary {
 
         use crate::binary::*;
 
-        fn write_nbt_string(buf: &mut Vec<u8>, str: String) {
+        fn append_nbt_string(buf: &mut Vec<u8>, str: String) {
             let str_bytes = str.as_bytes();
 
             // write length to a buffer in big endian
@@ -144,7 +144,7 @@ pub mod binary {
             buf.extend_from_slice(str_bytes);
         }
 
-        fn write_number<N>(buf: &mut Vec<u8>, num: N, write_fn: fn(&mut [u8], N)) {
+        fn append_number<N>(buf: &mut Vec<u8>, num: N, write_fn: fn(&mut [u8], N)) {
             let mut buf2 = [0x00u8; 8];
             write_fn(&mut buf2, num);
 
@@ -166,7 +166,7 @@ pub mod binary {
             let string = tc.draw(gs::text());
             let mut input: Vec<u8> = vec![];
 
-            write_nbt_string(&mut input, string.clone());
+            append_nbt_string(&mut input, string.clone());
 
             assert_eq!(parse_string(&mut &input[..]), Ok(string));
         }
@@ -178,7 +178,7 @@ pub mod binary {
             let tag_name = tc.draw(gs::text());
             let byte = tc.draw(gs::integers::<i8>());
 
-            write_nbt_string(&mut input, tag_name.clone());
+            append_nbt_string(&mut input, tag_name.clone());
             input.push(byte as u8);
 
             assert_eq!(
@@ -194,8 +194,8 @@ pub mod binary {
             let tag_name = tc.draw(gs::text());
             let num = tc.draw(gs::integers::<i16>());
 
-            write_nbt_string(&mut input, tag_name.clone());
-            write_number(&mut input, num, BigEndian::write_i16);
+            append_nbt_string(&mut input, tag_name.clone());
+            append_number(&mut input, num, BigEndian::write_i16);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -210,8 +210,8 @@ pub mod binary {
             let tag_name = tc.draw(gs::text());
             let num = tc.draw(gs::integers::<i32>());
 
-            write_nbt_string(&mut input, tag_name.clone());
-            write_number(&mut input, num, BigEndian::write_i32);
+            append_nbt_string(&mut input, tag_name.clone());
+            append_number(&mut input, num, BigEndian::write_i32);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -226,8 +226,8 @@ pub mod binary {
             let tag_name = tc.draw(gs::text());
             let num = tc.draw(gs::integers::<i64>());
 
-            write_nbt_string(&mut input, tag_name.clone());
-            write_number(&mut input, num, BigEndian::write_i64);
+            append_nbt_string(&mut input, tag_name.clone());
+            append_number(&mut input, num, BigEndian::write_i64);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -242,8 +242,8 @@ pub mod binary {
             let tag_name = tc.draw(gs::text());
             let num = tc.draw(gs::floats::<f32>());
 
-            write_nbt_string(&mut input, tag_name.clone());
-            write_number(&mut input, num, BigEndian::write_f32);
+            append_nbt_string(&mut input, tag_name.clone());
+            append_number(&mut input, num, BigEndian::write_f32);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -258,8 +258,8 @@ pub mod binary {
             let tag_name = tc.draw(gs::text());
             let num = tc.draw(gs::floats::<f64>());
 
-            write_nbt_string(&mut input, tag_name.clone());
-            write_number(&mut input, num, BigEndian::write_f64);
+            append_nbt_string(&mut input, tag_name.clone());
+            append_number(&mut input, num, BigEndian::write_f64);
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
@@ -274,8 +274,8 @@ pub mod binary {
             let tag_name = tc.draw(gs::text());
             let string = tc.draw(gs::text());
 
-            write_nbt_string(&mut input, tag_name.clone());
-            write_nbt_string(&mut input, string.clone());
+            append_nbt_string(&mut input, tag_name.clone());
+            append_nbt_string(&mut input, string.clone());
 
             assert_eq!(
                 parse_tag(&mut &input[..]),
