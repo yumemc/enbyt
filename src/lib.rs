@@ -137,14 +137,19 @@ mod tests {
         );
     }
 
+    fn write_nbt_string(str: String, buf: &mut Vec<u8>) {
+        let str_bytes = str.as_bytes();
+
+        BigEndian::write_u16(buf.as_mut_slice(), str_bytes.len() as u16);
+        buf.extend_from_slice(str_bytes);
+    }
+
     #[test]
     fn test_parse_string() {
-        let string = "carly".to_string();
-        let string_utf8 = string.as_bytes();
-
         let mut input: Vec<u8> = vec![0, 0];
-        BigEndian::write_u16(input.as_mut_slice(), string_utf8.len() as u16);
-        input.extend_from_slice(string_utf8);
+        let string = "carly".to_string();
+
+        write_nbt_string(string.clone(), &mut input);
 
         assert_eq!(parse_string(&mut &input[..]), Ok(string));
     }
