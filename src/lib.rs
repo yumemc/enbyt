@@ -28,7 +28,7 @@ pub enum TagPayload {
     String(String),
 
     // NOTE: Should be homogenous
-    List(Vec<Tag>),
+    List(i8, Vec<Tag>),
 
     // NOTE: Must hold that key == value.name
     Compound(HashMap<String, Tag>),
@@ -42,7 +42,7 @@ pub mod binary {
 
     use byteorder::{BigEndian, ByteOrder};
     use winnow::{
-        combinator::{dispatch, empty, fail, seq},
+        combinator::{dispatch, empty, fail, repeat, seq},
         error::{ContextError, StrContext},
         prelude::*,
         token::{any, take},
@@ -113,6 +113,15 @@ pub mod binary {
         parse_string.parse_next(input)
     }
 
+    fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(i8, Vec<Tag>)> {
+        let tag_type_id = any.parse_next(input)? as i8;
+        let size = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+
+        let tags = repeat(size, parse_tag).parse_next(input)?;
+
+        Ok((tag_type_id, tags))
+    }
+
     pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
         dispatch! { any;
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
@@ -124,7 +133,7 @@ pub mod binary {
         0x06 => seq! { Tag { name: parse_tag_name, payload: parse_double_payload.map(TagPayload::Double) } },
         0x07 => seq! { Tag { name: parse_tag_name, payload: parse_byte_array_payload.map(TagPayload::ByteArray) } },
         0x08 => seq! { Tag { name: parse_tag_name, payload: parse_string_payload.map(TagPayload::String) } },
-        // 0x09 => todo!("list"),       
+        0x09 => seq! { Tag { name: parse_tag_name, payload: parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)) } },
         // 0x0a => todo!("compound"),   
         // 0x0b => todo!("int array"),  
         // 0x0c => todo!("long array"), 
@@ -304,5 +313,9 @@ pub mod binary {
                 Ok(Tag::new(tag_name, TagPayload::String(string)))
             );
         }
+
+        // TODO: test list
+        // but i think we have to start implementing serialization first, so testing can be done
+        // nicely
     }
 }
