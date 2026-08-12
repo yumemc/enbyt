@@ -75,6 +75,13 @@ pub mod binary {
             write_string(buf, name)
         }
 
+        /// Writes a a signed 1 byte number `byte` into a buffer `buf`.
+        ///
+        /// This encodes it in two's complement form.
+        pub fn write_byte_payload(buf: &mut [u8], byte: i8) {
+            buf[0] = byte as u8;
+        }
+
         #[cfg(test)]
         mod tests {
             use hegel::TestCase;
