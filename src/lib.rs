@@ -166,7 +166,9 @@ pub mod binary {
             use hegel::TestCase;
             use hegel::generators as gs;
 
+            use crate::binary::deserialize::parse_byte_payload;
             use crate::binary::deserialize::parse_string;
+            use crate::binary::serialize::write_byte_payload;
             use crate::binary::serialize::write_string;
 
             #[hegel::test]
@@ -177,6 +179,19 @@ pub mod binary {
                 write_string(&mut buf, str.clone());
 
                 assert_eq!(parse_string(&mut &buf[..]), Ok(str));
+            }
+
+            #[hegel::test]
+            fn test_parse_byte_payload(tc: TestCase) {
+                let byte = tc.draw(gs::integers::<i8>());
+
+                let mut buf = vec![0; 1];
+
+                write_byte_payload(&mut buf, byte);
+
+                let parsed = parse_byte_payload(&mut &buf[..]);
+
+                assert_eq!(parsed, Ok(byte));
             }
         }
     }
