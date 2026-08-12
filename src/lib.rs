@@ -50,7 +50,7 @@ pub mod binary {
 
     use crate::{
         Tag, TagPayload,
-        binary::deserialize::{parse_string, parse_tag_name},
+        binary::deserialize::{parse_byte_payload, parse_string, parse_tag_name},
     };
 
     mod serialize {
@@ -145,6 +145,15 @@ pub mod binary {
             parse_string.parse_next(input)
         }
 
+        /// Parses a NBT byte tag's payload from a byte slice `input` into an [`i8`].
+        pub fn parse_byte_payload(input: &mut &[u8]) -> ModalResult<i8> {
+            take(1usize).parse_next(input).map(|bytes| {
+                let byte = *bytes.first().unwrap();
+
+                byte as i8
+            })
+        }
+
         #[cfg(test)]
         mod tests {
             use hegel::TestCase;
@@ -163,14 +172,6 @@ pub mod binary {
                 assert_eq!(parse_string(&mut &buf[..]), Ok(str));
             }
         }
-    }
-
-    fn parse_byte_payload(input: &mut &[u8]) -> ModalResult<i8> {
-        take(1usize).parse_next(input).map(|bytes| {
-            let byte = *bytes.first().unwrap();
-
-            byte as i8
-        })
     }
 
     fn parse_short_payload(input: &mut &[u8]) -> ModalResult<i16> {
