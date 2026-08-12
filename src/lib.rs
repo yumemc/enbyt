@@ -53,7 +53,7 @@ pub mod binary {
         binary::deserialize::{
             parse_byte_array_payload, parse_byte_payload, parse_double_payload,
             parse_float_payload, parse_int_payload, parse_long_payload, parse_short_payload,
-            parse_string, parse_tag_name,
+            parse_string, parse_string_payload, parse_tag_name,
         },
     };
 
@@ -129,6 +129,13 @@ pub mod binary {
             BigEndian::write_i32(buf, arr.len() as i32);
 
             buf[4..4 + arr.len()].copy_from_slice(arr);
+        }
+
+        /// Writes a NBT string payload `str` into a buffer `buf`.
+        ///
+        /// This wraps [`write_string`]
+        pub fn write_string_payload(buf: &mut [u8], str: String) {
+            write_string(buf, str)
         }
 
         #[cfg(test)]
@@ -245,6 +252,13 @@ pub mod binary {
             Ok(bytes.into())
         }
 
+        /// Parses an NBT string tag's payload from a byte slice`input` into a [`String`].
+        ///
+        /// This wraps [`parse_string`].
+        pub fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
+            parse_string.parse_next(input)
+        }
+
         #[cfg(test)]
         mod tests {
             use hegel::TestCase;
@@ -355,11 +369,6 @@ pub mod binary {
             }
         }
     }
-
-    fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
-        parse_string.parse_next(input)
-    }
-
     fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(i8, Vec<Tag>)> {
         let tag_type_id = any.parse_next(input)? as i8;
         let size = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
