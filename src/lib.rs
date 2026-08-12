@@ -68,6 +68,13 @@ pub mod binary {
             buf[2..2 + string_bytes.len()].copy_from_slice(string_bytes);
         }
 
+        /// Writes a tag name `name` into a buffer `buf`.
+        ///
+        /// This wraps [`write_string`].
+        pub fn write_tag_name(buf: &mut [u8], name: String) {
+            write_string(buf, name)
+        }
+
         #[cfg(test)]
         mod tests {
             use hegel::TestCase;
