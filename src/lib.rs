@@ -86,9 +86,16 @@ pub mod binary {
 
         /// Writes a a signed 2 byte number `value` into a buffer `buf`.
         ///
-        /// This encodes it in two's complement form.
+        /// This encodes it in Big Endian form.
         pub fn write_short_payload(buf: &mut [u8], value: i16) {
             BigEndian::write_i16(buf, value);
+        }
+
+        /// Writes a a signed 4 byte number `value` into a buffer `buf`.
+        ///
+        /// This encodes it in Big Endian form.
+        pub fn write_int_payload(buf: &mut [u8], value: i32) {
+            BigEndian::write_i32(buf, value);
         }
 
         #[cfg(test)]
@@ -175,17 +182,18 @@ pub mod binary {
             take(2usize).parse_next(input).map(BigEndian::read_i16)
         }
 
+        /// Parses a NBT int tag's payload from a byte slice `input` into an [`i32`].
+        pub fn parse_int_payload(input: &mut &[u8]) -> ModalResult<i32> {
+            take(4usize).parse_next(input).map(BigEndian::read_i32)
+        }
+
         #[cfg(test)]
         mod tests {
             use hegel::TestCase;
             use hegel::generators as gs;
 
-            use crate::binary::deserialize::parse_byte_payload;
-            use crate::binary::deserialize::parse_short_payload;
-            use crate::binary::deserialize::parse_string;
-            use crate::binary::serialize::write_byte_payload;
-            use crate::binary::serialize::write_short_payload;
-            use crate::binary::serialize::write_string;
+            use crate::binary::deserialize::*;
+            use crate::binary::serialize::*;
 
             #[hegel::test]
             fn test_parse_string(tc: TestCase) {
@@ -219,6 +227,19 @@ pub mod binary {
                 write_short_payload(&mut buf, num);
 
                 let parsed = parse_short_payload(&mut &buf[..]);
+
+                assert_eq!(parsed, Ok(num));
+            }
+
+            #[hegel::test]
+            fn test_parse_int_payload(tc: TestCase) {
+                let num = tc.draw(gs::integers::<i32>());
+
+                let mut buf = vec![0; 4];
+
+                write_int_payload(&mut buf, num);
+
+                let parsed = parse_int_payload(&mut &buf[..]);
 
                 assert_eq!(parsed, Ok(num));
             }
