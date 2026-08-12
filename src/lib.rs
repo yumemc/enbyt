@@ -52,8 +52,8 @@ pub mod binary {
         Tag, TagPayload,
         binary::deserialize::{
             parse_byte_array_payload, parse_byte_payload, parse_double_payload,
-            parse_float_payload, parse_int_payload, parse_long_payload, parse_short_payload,
-            parse_string, parse_string_payload, parse_tag_name,
+            parse_float_payload, parse_int_payload, parse_list_payload, parse_long_payload,
+            parse_short_payload, parse_string, parse_string_payload, parse_tag_name,
         },
     };
 
@@ -178,9 +178,12 @@ pub mod binary {
         use byteorder::{BigEndian, ByteOrder};
         use winnow::{
             ModalResult, Parser,
+            combinator::repeat,
             error::{ContextError, StrContext},
-            token::take,
+            token::{any, take},
         };
+
+        use crate::{Tag, binary::parse_tag};
 
         /// Parses a string from a byte slice `input` into a [`String`].
         pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
@@ -252,11 +255,26 @@ pub mod binary {
             Ok(bytes.into())
         }
 
-        /// Parses an NBT string tag's payload from a byte slice`input` into a [`String`].
+        /// Parses an NBT string tag's payload from a byte slice `input` into a [`String`].
         ///
         /// This wraps [`parse_string`].
         pub fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
             parse_string.parse_next(input)
+        }
+
+        /// Parses an NBT array tag's payload from a byte slice `input` into a [`(i8, Vec<Tag>)`]
+        /// containing the size and the tag array.
+        pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(i8, Vec<Tag>)> {
+            let tag_type_id = any.parse_next(input)? as i8;
+            let size = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+
+            let tags = repeat(size, parse_tag).parse_next(input)?;
+
+            // TODO: as per the reference, the tags are all of the same type. Should this return an
+            // error if they are not? This would risk losing corrupt data with the user unable to do
+            // anything about it. Perhaps some sort of `strict` option.
+
+            Ok((tag_type_id, tags))
         }
 
         #[cfg(test)]
@@ -368,14 +386,6 @@ pub mod binary {
                 assert_eq!(parsed, Ok(arr));
             }
         }
-    }
-    fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(i8, Vec<Tag>)> {
-        let tag_type_id = any.parse_next(input)? as i8;
-        let size = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
-
-        let tags = repeat(size, parse_tag).parse_next(input)?;
-
-        Ok((tag_type_id, tags))
     }
 
     pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
