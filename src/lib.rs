@@ -68,6 +68,39 @@ pub mod binary {
         Ok(string)
     }
 
+    mod serialize {
+        use byteorder::{BigEndian, ByteOrder};
+
+        pub fn write_string(buf: &mut [u8], str: String) {
+            let length = str.len();
+            let string_bytes = str.as_bytes();
+
+            BigEndian::write_u16(buf, length as u16);
+            buf[2..2 + string_bytes.len()].copy_from_slice(string_bytes);
+        }
+
+        #[cfg(test)]
+        mod tests {
+            use hegel::TestCase;
+            use hegel::generators as gs;
+
+            use crate::binary::serialize::*;
+
+            #[hegel::test]
+            fn test_write_string_length(tc: TestCase) {
+                let str = tc.draw(gs::text());
+
+                let mut buf = vec![0; 2 + str.len()];
+                write_string(&mut buf, str.clone());
+
+                let len_bytes = &buf[..2];
+                let len = BigEndian::read_u16(len_bytes) as usize;
+
+                assert_eq!(len, str.len());
+            }
+        }
+    }
+
     fn parse_tag_name(input: &mut &[u8]) -> ModalResult<String> {
         parse_string.parse_next(input)
     }
