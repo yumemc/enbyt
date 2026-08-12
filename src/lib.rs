@@ -53,6 +53,10 @@ pub mod binary {
     mod serialize {
         use byteorder::{BigEndian, ByteOrder};
 
+        /// Writes a string `str` into a buffer `buf`.
+        ///
+        /// The format is: 16 byte integer (Big Endian) indicating the string's length, and the
+        /// string's bytes encoded using UTF-8.
         pub fn write_string(buf: &mut [u8], str: String) {
             let length = str.len();
             let string_bytes = str.as_bytes();
@@ -105,6 +109,7 @@ pub mod binary {
             token::take,
         };
 
+        /// Parses a string from a byte slice `input`.
         pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
             // 2 bytes of length
             let length = take(2usize)
