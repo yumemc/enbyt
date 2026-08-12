@@ -48,7 +48,10 @@ pub mod binary {
         token::{any, take},
     };
 
-    use crate::{Tag, TagPayload, binary::deserialize::parse_string};
+    use crate::{
+        Tag, TagPayload,
+        binary::deserialize::{parse_string, parse_tag_name},
+    };
 
     mod serialize {
         use byteorder::{BigEndian, ByteOrder};
@@ -109,7 +112,7 @@ pub mod binary {
             token::take,
         };
 
-        /// Parses a string from a byte slice `input`.
+        /// Parses a string from a byte slice `input` into a [`String`].
         pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
             // 2 bytes of length
             let length = take(2usize)
@@ -126,6 +129,13 @@ pub mod binary {
                 .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?; // TODO: add context :)
 
             Ok(string)
+        }
+
+        /// Parses a tag's name from a byte slice `input` into a [`String`].
+        ///
+        /// This wraps [`parse_string`].
+        pub fn parse_tag_name(input: &mut &[u8]) -> ModalResult<String> {
+            parse_string.parse_next(input)
         }
 
         #[cfg(test)]
@@ -146,10 +156,6 @@ pub mod binary {
                 assert_eq!(parse_string(&mut &buf[..]), Ok(str));
             }
         }
-    }
-
-    fn parse_tag_name(input: &mut &[u8]) -> ModalResult<String> {
-        parse_string.parse_next(input)
     }
 
     fn parse_byte_payload(input: &mut &[u8]) -> ModalResult<i8> {
