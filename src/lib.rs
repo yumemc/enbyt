@@ -50,7 +50,9 @@ pub mod binary {
 
     use crate::{
         Tag, TagPayload,
-        binary::deserialize::{parse_byte_payload, parse_string, parse_tag_name},
+        binary::deserialize::{
+            parse_byte_payload, parse_short_payload, parse_string, parse_tag_name,
+        },
     };
 
     mod serialize {
@@ -80,6 +82,13 @@ pub mod binary {
         /// This encodes it in two's complement form.
         pub fn write_byte_payload(buf: &mut [u8], byte: i8) {
             buf[0] = byte as u8;
+        }
+
+        /// Writes a a signed 2 byte number `value` into a buffer `buf`.
+        ///
+        /// This encodes it in two's complement form.
+        pub fn write_short_payload(buf: &mut [u8], value: i16) {
+            BigEndian::write_i16(buf, value);
         }
 
         #[cfg(test)]
@@ -161,14 +170,21 @@ pub mod binary {
             })
         }
 
+        /// Parses a NBT short tag's payload from a byte slice `input` into an [`i16`].
+        pub fn parse_short_payload(input: &mut &[u8]) -> ModalResult<i16> {
+            take(2usize).parse_next(input).map(BigEndian::read_i16)
+        }
+
         #[cfg(test)]
         mod tests {
             use hegel::TestCase;
             use hegel::generators as gs;
 
             use crate::binary::deserialize::parse_byte_payload;
+            use crate::binary::deserialize::parse_short_payload;
             use crate::binary::deserialize::parse_string;
             use crate::binary::serialize::write_byte_payload;
+            use crate::binary::serialize::write_short_payload;
             use crate::binary::serialize::write_string;
 
             #[hegel::test]
@@ -193,11 +209,20 @@ pub mod binary {
 
                 assert_eq!(parsed, Ok(byte));
             }
-        }
-    }
 
-    fn parse_short_payload(input: &mut &[u8]) -> ModalResult<i16> {
-        take(2usize).parse_next(input).map(BigEndian::read_i16)
+            #[hegel::test]
+            fn test_parse_short_payload(tc: TestCase) {
+                let num = tc.draw(gs::integers::<i16>());
+
+                let mut buf = vec![0; 2];
+
+                write_short_payload(&mut buf, num);
+
+                let parsed = parse_short_payload(&mut &buf[..]);
+
+                assert_eq!(parsed, Ok(num));
+            }
+        }
     }
 
     fn parse_int_payload(input: &mut &[u8]) -> ModalResult<i32> {
