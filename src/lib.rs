@@ -48,25 +48,7 @@ pub mod binary {
         token::{any, take},
     };
 
-    use crate::{Tag, TagPayload};
-
-    fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
-        // 2 bytes of length
-        let length = take(2usize)
-            .context(StrContext::Label("string length"))
-            .parse_next(input)
-            .map(BigEndian::read_u16)?;
-
-        // n bytes of string
-        let string_bytes = take(length as usize)
-            .context(StrContext::Label("string"))
-            .parse_next(input)?;
-
-        let string = String::from_utf8(string_bytes.to_vec())
-            .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?; // TODO: add context :)
-
-        Ok(string)
-    }
+    use crate::{Tag, TagPayload, binary::deserialize::parse_string};
 
     mod serialize {
         use byteorder::{BigEndian, ByteOrder};
@@ -110,6 +92,53 @@ pub mod binary {
                 let str_decoded = String::from_utf8(str_bytes.into());
 
                 assert_eq!(str_decoded, Ok(str));
+            }
+        }
+    }
+
+    mod deserialize {
+
+        use byteorder::{BigEndian, ByteOrder};
+        use winnow::{
+            ModalResult, Parser,
+            error::{ContextError, StrContext},
+            token::take,
+        };
+
+        pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
+            // 2 bytes of length
+            let length = take(2usize)
+                .context(StrContext::Label("string length"))
+                .parse_next(input)
+                .map(BigEndian::read_u16)?;
+
+            // n bytes of string
+            let string_bytes = take(length as usize)
+                .context(StrContext::Label("string"))
+                .parse_next(input)?;
+
+            let string = String::from_utf8(string_bytes.to_vec())
+                .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?; // TODO: add context :)
+
+            Ok(string)
+        }
+
+        #[cfg(test)]
+        mod tests {
+            use hegel::TestCase;
+            use hegel::generators as gs;
+
+            use crate::binary::deserialize::parse_string;
+            use crate::binary::serialize::write_string;
+
+            #[hegel::test]
+            fn test_parse_string(tc: TestCase) {
+                let str = tc.draw(gs::text());
+
+                let mut buf = vec![0; 2 + str.len()];
+                write_string(&mut buf, str.clone());
+
+                assert_eq!(parse_string(&mut &buf[..]), Ok(str));
             }
         }
     }
@@ -219,16 +248,6 @@ pub mod binary {
                 parse_tag(&mut input),
                 Ok(Tag::new(String::default(), TagPayload::Empty))
             );
-        }
-
-        #[hegel::test]
-        fn test_parse_string(tc: TestCase) {
-            let string = tc.draw(gs::text());
-            let mut input: Vec<u8> = vec![];
-
-            append_nbt_string(&mut input, string.clone());
-
-            assert_eq!(parse_string(&mut &input[..]), Ok(string));
         }
 
         #[hegel::test]
