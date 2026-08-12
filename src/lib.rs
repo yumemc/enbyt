@@ -51,8 +51,8 @@ pub mod binary {
     use crate::{
         Tag, TagPayload,
         binary::deserialize::{
-            parse_byte_payload, parse_int_payload, parse_long_payload, parse_short_payload,
-            parse_string, parse_tag_name,
+            parse_byte_payload, parse_float_payload, parse_int_payload, parse_long_payload,
+            parse_short_payload, parse_string, parse_tag_name,
         },
     };
 
@@ -104,6 +104,13 @@ pub mod binary {
         /// This encodes it in Big Endian form.
         pub fn write_long_payload(buf: &mut [u8], value: i64) {
             BigEndian::write_i64(buf, value);
+        }
+
+        /// Writes a a signed 4 byte float number `value` into a buffer `buf`.
+        ///
+        /// This encodes it in Big Endian form.
+        pub fn write_float_payload(buf: &mut [u8], value: f32) {
+            BigEndian::write_f32(buf, value);
         }
 
         #[cfg(test)]
@@ -200,6 +207,11 @@ pub mod binary {
             take(8usize).parse_next(input).map(BigEndian::read_i64)
         }
 
+        /// Parses a NBT float tag's payload from a byte slice `input` into an [`f32`].
+        pub fn parse_float_payload(input: &mut &[u8]) -> ModalResult<f32> {
+            take(4usize).parse_next(input).map(BigEndian::read_f32)
+        }
+
         #[cfg(test)]
         mod tests {
             use hegel::TestCase;
@@ -269,11 +281,20 @@ pub mod binary {
 
                 assert_eq!(parsed, Ok(num));
             }
-        }
-    }
 
-    fn parse_float_payload(input: &mut &[u8]) -> ModalResult<f32> {
-        take(4usize).parse_next(input).map(BigEndian::read_f32)
+            #[hegel::test]
+            fn test_parse_float_payload(tc: TestCase) {
+                let num = tc.draw(gs::floats::<f32>());
+
+                let mut buf = vec![0; 4];
+
+                write_float_payload(&mut buf, num);
+
+                let parsed = parse_float_payload(&mut &buf[..]);
+
+                assert_eq!(parsed, Ok(num));
+            }
+        }
     }
 
     fn parse_double_payload(input: &mut &[u8]) -> ModalResult<f64> {
