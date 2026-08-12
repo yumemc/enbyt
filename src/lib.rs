@@ -51,7 +51,8 @@ pub mod binary {
     use crate::{
         Tag, TagPayload,
         binary::deserialize::{
-            parse_byte_payload, parse_short_payload, parse_string, parse_tag_name,
+            parse_byte_payload, parse_int_payload, parse_short_payload, parse_string,
+            parse_tag_name,
         },
     };
 
@@ -244,10 +245,6 @@ pub mod binary {
                 assert_eq!(parsed, Ok(num));
             }
         }
-    }
-
-    fn parse_int_payload(input: &mut &[u8]) -> ModalResult<i32> {
-        take(4usize).parse_next(input).map(BigEndian::read_i32)
     }
 
     fn parse_long_payload(input: &mut &[u8]) -> ModalResult<i64> {
