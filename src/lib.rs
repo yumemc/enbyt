@@ -40,11 +40,6 @@ pub enum TagPayload {
 
 pub mod binary {
 
-    
-    
-
-    
-
     pub mod serialize {
         use byteorder::{BigEndian, ByteOrder};
 
