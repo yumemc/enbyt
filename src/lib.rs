@@ -46,20 +46,22 @@ pub mod binary {
 
         use crate::{Tag, TagPayload};
 
+        pub enum SerializeError {}
+
         /// Writes a string `str` into a buffer `buf`.
         ///
         /// Returns the amount of bytes written.
         ///
         /// The format is: 2 byte integer (Big Endian) indicating the string's length, and the
         /// string's bytes encoded using UTF-8.
-        pub fn write_string(buf: &mut [u8], str: String) -> usize {
+        pub fn write_string(buf: &mut [u8], str: String) -> Result<usize, SerializeError> {
             let length = str.len();
             let string_bytes = str.as_bytes();
 
             BigEndian::write_u16(buf, length as u16);
             buf[2..2 + string_bytes.len()].copy_from_slice(string_bytes);
 
-            2 + string_bytes.len()
+            Ok(2 + string_bytes.len())
         }
 
         /// Writes a tag name `name` into a buffer `buf`.
@@ -67,7 +69,7 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This wraps [`write_string`].
-        pub fn write_tag_name(buf: &mut [u8], name: String) -> usize {
+        pub fn write_tag_name(buf: &mut [u8], name: String) -> Result<usize, SerializeError> {
             write_string(buf, name)
         }
 
@@ -76,10 +78,10 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in two's complement form.
-        pub fn write_byte_payload(buf: &mut [u8], byte: i8) -> usize {
+        pub fn write_byte_payload(buf: &mut [u8], byte: i8) -> Result<usize, SerializeError> {
             buf[0] = byte as u8;
 
-            1
+            Ok(1)
         }
 
         /// Writes a a signed 2 byte number `value` into a buffer `buf`.
@@ -87,10 +89,10 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_short_payload(buf: &mut [u8], value: i16) -> usize {
+        pub fn write_short_payload(buf: &mut [u8], value: i16) -> Result<usize, SerializeError> {
             BigEndian::write_i16(buf, value);
 
-            2
+            Ok(2)
         }
 
         /// Writes a a signed 4 byte number `value` into a buffer `buf`.
@@ -98,10 +100,10 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_int_payload(buf: &mut [u8], value: i32) -> usize {
+        pub fn write_int_payload(buf: &mut [u8], value: i32) -> Result<usize, SerializeError> {
             BigEndian::write_i32(buf, value);
 
-            4
+            Ok(4)
         }
 
         /// Writes a a signed 8 byte number `value` into a buffer `buf`.
@@ -109,10 +111,10 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_long_payload(buf: &mut [u8], value: i64) -> usize {
+        pub fn write_long_payload(buf: &mut [u8], value: i64) -> Result<usize, SerializeError> {
             BigEndian::write_i64(buf, value);
 
-            8
+            Ok(8)
         }
 
         /// Writes a a signed 4 byte float number `value` into a buffer `buf`.
@@ -120,10 +122,10 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_float_payload(buf: &mut [u8], value: f32) -> usize {
+        pub fn write_float_payload(buf: &mut [u8], value: f32) -> Result<usize, SerializeError> {
             BigEndian::write_f32(buf, value);
 
-            4
+            Ok(4)
         }
 
         /// Writes a a signed 8 byte float number `value` into a buffer `buf`.
@@ -131,10 +133,10 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_double_payload(buf: &mut [u8], value: f64) -> usize {
+        pub fn write_double_payload(buf: &mut [u8], value: f64) -> Result<usize, SerializeError> {
             BigEndian::write_f64(buf, value);
 
-            8
+            Ok(8)
         }
 
         /// Writes a NBT byte array `arr` into a buffer `buf`.
@@ -143,12 +145,15 @@ pub mod binary {
         ///
         /// The format is: 4 bytes for the size of the array (Big Endian-encoded) then the literal
         /// byte array.
-        pub fn write_byte_array_payload(buf: &mut [u8], arr: &[u8]) -> usize {
+        pub fn write_byte_array_payload(
+            buf: &mut [u8],
+            arr: &[u8],
+        ) -> Result<usize, SerializeError> {
             BigEndian::write_i32(buf, arr.len() as i32);
 
             buf[4..4 + arr.len()].copy_from_slice(arr);
 
-            4 + arr.len()
+            Ok(4 + arr.len())
         }
 
         /// Writes a NBT string payload `str` into a buffer `buf`.
@@ -156,7 +161,7 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This wraps [`write_string`]
-        pub fn write_string_payload(buf: &mut [u8], str: String) -> usize {
+        pub fn write_string_payload(buf: &mut [u8], str: String) -> Result<usize, SerializeError> {
             write_string(buf, str)
         }
 
@@ -169,7 +174,10 @@ pub mod binary {
         ///     - 1 byte for the ID of the type of the list's contents
         ///     - 4 bytes for the length
         ///     - every tag
-        pub fn write_list_payload(buf: &mut [u8], (type_id, list): (i8, Vec<Tag>)) -> usize {
+        pub fn write_list_payload(
+            buf: &mut [u8],
+            (type_id, list): (i8, Vec<Tag>),
+        ) -> Result<usize, SerializeError> {
             // TODO: validate as per spec? (all tags must have the same type?)
 
             buf[0] = type_id as u8;
@@ -178,14 +186,19 @@ pub mod binary {
 
             let tags_buf = &mut buf[5..];
 
-            let tags_written = list.iter().fold(0, |start, tag| {
-                // TODO: remove clone, consider taking reference in write_tag.
-                let written = write_tag(&mut tags_buf[start..], tag.clone());
+            let tags_written = list.iter().fold(Ok(0), |start, tag| {
+                match start {
+                    Ok(start) => {
+                        // TODO: remove clone, consider taking reference in write_tag.
+                        let written = write_tag(&mut tags_buf[start..], tag.clone())?;
 
-                start + written
-            });
+                        Ok(start + written)
+                    }
+                    err => err,
+                }
+            })?;
 
-            5 + tags_written
+            Ok(5 + tags_written)
         }
 
         /// Writes a NBT compound payload `value` into a buffer `buf`.
@@ -196,15 +209,21 @@ pub mod binary {
         ///
         ///     - every payload inside the list (the value of this payload)
         ///     - 0x00, which is an empty NBT tag
-        pub fn write_compound_payload(buf: &mut [u8], value: Vec<Tag>) -> usize {
-            let tags_written = value.into_iter().fold(0, |start, tag| {
-                // TODO: again, make this work with references
-                let written = write_tag(&mut buf[start..], tag.clone());
+        pub fn write_compound_payload(
+            buf: &mut [u8],
+            value: Vec<Tag>,
+        ) -> Result<usize, SerializeError> {
+            let tags_written = value.into_iter().fold(Ok(0), |start, tag| match start {
+                Ok(start) => {
+                    // TODO: again, make this work with references
+                    let written = write_tag(&mut buf[start..], tag.clone())?;
 
-                start + written
-            });
+                    Ok(start + written)
+                }
+                err => err,
+            })?;
 
-            1 + tags_written
+            Ok(1 + tags_written)
         }
 
         /// Writes a NBT int array `arr` into a buffer `buf`.
@@ -214,18 +233,24 @@ pub mod binary {
         /// The format is:
         /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
         /// - n int payloads (see [`write_int_payload`])
-        pub fn write_int_array_payload(buf: &mut [u8], arr: Vec<i32>) -> usize {
+        pub fn write_int_array_payload(
+            buf: &mut [u8],
+            arr: Vec<i32>,
+        ) -> Result<usize, SerializeError> {
             BigEndian::write_i32(buf, arr.len() as i32);
 
             let ints_buf = &mut buf[4..];
 
-            let ints_written = arr.iter().fold(0, |start, val| {
-                let written = write_int_payload(&mut ints_buf[start..], *val);
+            let ints_written = arr.iter().fold(Ok(0), |start, val| match start {
+                Ok(start) => {
+                    let written = write_int_payload(&mut ints_buf[start..], *val)?;
 
-                start + written
-            });
+                    Ok(start + written)
+                }
+                err => err,
+            })?;
 
-            4 + ints_written
+            Ok(4 + ints_written)
         }
 
         /// Writes a NBT long array `arr` into a buffer `buf`.
@@ -235,18 +260,24 @@ pub mod binary {
         /// The format is:
         /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
         /// - n long payloads (see [`write_long_payload`])
-        pub fn write_long_array_payload(buf: &mut [u8], arr: Vec<i64>) -> usize {
+        pub fn write_long_array_payload(
+            buf: &mut [u8],
+            arr: Vec<i64>,
+        ) -> Result<usize, SerializeError> {
             BigEndian::write_i32(buf, arr.len() as i32);
 
             let ints_buf = &mut buf[4..];
 
-            let ints_written = arr.iter().fold(0, |start, val| {
-                let written = write_long_payload(&mut ints_buf[start..], *val);
+            let ints_written = arr.iter().fold(Ok(0), |start, val| match start {
+                Ok(start) => {
+                    let written = write_long_payload(&mut ints_buf[start..], *val)?;
 
-                start + written
-            });
+                    Ok(start + written)
+                }
+                err => err,
+            })?;
 
-            4 + ints_written
+            Ok(4 + ints_written)
         }
 
         /// Writes a NBT tag `tag` into a buffer `buf`.
@@ -261,7 +292,7 @@ pub mod binary {
         ///     - n bytes for the name's UTF-8 encoded
         ///
         ///     - the tag's payload
-        pub fn write_tag(buf: &mut [u8], tag: Tag) -> usize {
+        pub fn write_tag(buf: &mut [u8], tag: Tag) -> Result<usize, SerializeError> {
             // TODO: this could be extracted out to TagPayload::type_id()
             let tag_type_id = match tag.payload {
                 crate::TagPayload::Empty => 0x00,
@@ -281,12 +312,12 @@ pub mod binary {
 
             buf[0] = tag_type_id as u8;
 
-            let name_written = write_string(&mut buf[1..], tag.name);
+            let name_written = write_string(&mut buf[1..], tag.name)?;
 
             let payload_buf = &mut buf[name_written..];
 
             let payload_written = match tag.payload {
-                TagPayload::Empty => 0,
+                TagPayload::Empty => Ok(0),
                 TagPayload::Byte(value) => write_byte_payload(payload_buf, value),
                 TagPayload::Short(value) => write_short_payload(payload_buf, value),
                 TagPayload::Int(value) => write_int_payload(payload_buf, value),
@@ -303,9 +334,9 @@ pub mod binary {
                 TagPayload::ByteArray(value) => write_byte_array_payload(payload_buf, &value),
                 TagPayload::IntArray(items) => write_int_array_payload(payload_buf, items),
                 TagPayload::LongArray(items) => write_long_array_payload(payload_buf, items),
-            };
+            }?;
 
-            1 + name_written + payload_written
+            Ok(1 + name_written + payload_written)
         }
     }
 
