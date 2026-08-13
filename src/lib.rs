@@ -186,16 +186,11 @@ pub mod binary {
 
             let tags_buf = &mut buf[5..];
 
-            let tags_written = list.iter().fold(Ok(0), |start, tag| {
-                match start {
-                    Ok(start) => {
-                        // TODO: remove clone, consider taking reference in write_tag.
-                        let written = write_tag(&mut tags_buf[start..], tag.clone())?;
+            let tags_written = list.iter().try_fold(0, |start, tag| {
+                // TODO: remove clone, consider taking reference in write_tag.
+                let written = write_tag(&mut tags_buf[start..], tag.clone())?;
 
-                        Ok(start + written)
-                    }
-                    err => err,
-                }
+                Ok(start + written)
             })?;
 
             Ok(5 + tags_written)
@@ -213,14 +208,11 @@ pub mod binary {
             buf: &mut [u8],
             value: Vec<Tag>,
         ) -> Result<usize, SerializeError> {
-            let tags_written = value.into_iter().fold(Ok(0), |start, tag| match start {
-                Ok(start) => {
-                    // TODO: again, make this work with references
-                    let written = write_tag(&mut buf[start..], tag.clone())?;
+            let tags_written = value.into_iter().try_fold(0, |start, tag| {
+                // TODO: again, make this work with references
+                let written = write_tag(&mut buf[start..], tag.clone())?;
 
-                    Ok(start + written)
-                }
-                err => err,
+                Ok(start + written)
             })?;
 
             Ok(1 + tags_written)
@@ -241,13 +233,10 @@ pub mod binary {
 
             let ints_buf = &mut buf[4..];
 
-            let ints_written = arr.iter().fold(Ok(0), |start, val| match start {
-                Ok(start) => {
-                    let written = write_int_payload(&mut ints_buf[start..], *val)?;
+            let ints_written = arr.iter().try_fold(0, |start, val| {
+                let written = write_int_payload(&mut ints_buf[start..], *val)?;
 
-                    Ok(start + written)
-                }
-                err => err,
+                Ok(start + written)
             })?;
 
             Ok(4 + ints_written)
@@ -268,13 +257,10 @@ pub mod binary {
 
             let ints_buf = &mut buf[4..];
 
-            let ints_written = arr.iter().fold(Ok(0), |start, val| match start {
-                Ok(start) => {
-                    let written = write_long_payload(&mut ints_buf[start..], *val)?;
+            let ints_written = arr.iter().try_fold(0, |start, val| {
+                let written = write_long_payload(&mut ints_buf[start..], *val)?;
 
-                    Ok(start + written)
-                }
-                err => err,
+                Ok(start + written)
             })?;
 
             Ok(4 + ints_written)
