@@ -1,6 +1,6 @@
 /// enbyt: a Rust NBT library
 ///
-/// NBT Format Reference: https://minecraft.wiki/w/NBT_format
+/// NBT Format Reference: <https://minecraft.wiki/w/NBT_format>
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
