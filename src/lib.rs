@@ -63,6 +63,8 @@ pub mod binary {
 
         /// Writes a tag name `name` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// This wraps [`write_string`].
         pub fn write_tag_name(buf: &mut [u8], name: String) -> usize {
             write_string(buf, name)
@@ -70,64 +72,96 @@ pub mod binary {
 
         /// Writes a a signed 1 byte number `byte` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// This encodes it in two's complement form.
-        pub fn write_byte_payload(buf: &mut [u8], byte: i8) {
+        pub fn write_byte_payload(buf: &mut [u8], byte: i8) -> usize {
             buf[0] = byte as u8;
+
+            1
         }
 
         /// Writes a a signed 2 byte number `value` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// This encodes it in Big Endian form.
-        pub fn write_short_payload(buf: &mut [u8], value: i16) {
+        pub fn write_short_payload(buf: &mut [u8], value: i16) -> usize {
             BigEndian::write_i16(buf, value);
+
+            2
         }
 
         /// Writes a a signed 4 byte number `value` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// This encodes it in Big Endian form.
-        pub fn write_int_payload(buf: &mut [u8], value: i32) {
+        pub fn write_int_payload(buf: &mut [u8], value: i32) -> usize {
             BigEndian::write_i32(buf, value);
+
+            4
         }
 
         /// Writes a a signed 8 byte number `value` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// This encodes it in Big Endian form.
-        pub fn write_long_payload(buf: &mut [u8], value: i64) {
+        pub fn write_long_payload(buf: &mut [u8], value: i64) -> usize {
             BigEndian::write_i64(buf, value);
+
+            8
         }
 
         /// Writes a a signed 4 byte float number `value` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// This encodes it in Big Endian form.
-        pub fn write_float_payload(buf: &mut [u8], value: f32) {
+        pub fn write_float_payload(buf: &mut [u8], value: f32) -> usize {
             BigEndian::write_f32(buf, value);
+
+            4
         }
 
         /// Writes a a signed 8 byte float number `value` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// This encodes it in Big Endian form.
-        pub fn write_double_payload(buf: &mut [u8], value: f64) {
+        pub fn write_double_payload(buf: &mut [u8], value: f64) -> usize {
             BigEndian::write_f64(buf, value);
+
+            8
         }
 
         /// Writes a NBT byte array `arr` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// The format is: 4 bytes for the size of the array (Big Endian-encoded) then the literal
         /// byte array.
-        pub fn write_byte_array_payload(buf: &mut [u8], arr: &[u8]) {
+        pub fn write_byte_array_payload(buf: &mut [u8], arr: &[u8]) -> usize {
             BigEndian::write_i32(buf, arr.len() as i32);
 
             buf[4..4 + arr.len()].copy_from_slice(arr);
+
+            4 + arr.len()
         }
 
         /// Writes a NBT string payload `str` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// This wraps [`write_string`]
-        pub fn write_string_payload(buf: &mut [u8], str: String) {
-            write_string(buf, str);
+        pub fn write_string_payload(buf: &mut [u8], str: String) -> usize {
+            write_string(buf, str)
         }
 
         /// Writes a NBT tag `tag` into a buffer `buf`.
+        ///
+        /// Returns the amount of bytes written.
         ///
         /// The format is:
         ///     - 1 byte for the tag type's ID
@@ -137,7 +171,7 @@ pub mod binary {
         ///     - n bytes for the name's UTF-8 encoded
         ///
         ///     - the tag's payload
-        pub fn write_tag(buf: &mut [u8], tag: Tag) {
+        pub fn write_tag(buf: &mut [u8], tag: Tag) -> usize {
             // TODO: this could be extracted out to TagPayload::type_id()
             let tag_type_id = match tag.payload {
                 crate::TagPayload::Empty => 0x00,
@@ -157,12 +191,12 @@ pub mod binary {
 
             buf[0] = tag_type_id as u8;
 
-            let written = write_string(&mut buf[1..], tag.name);
+            let name_written = write_string(&mut buf[1..], tag.name);
 
-            let payload_buf = &mut buf[written..];
+            let payload_buf = &mut buf[name_written..];
 
-            match tag.payload {
-                TagPayload::Empty => {}
+            let payload_written = match tag.payload {
+                TagPayload::Empty => 0,
                 TagPayload::Byte(value) => write_byte_payload(payload_buf, value),
                 TagPayload::Short(value) => write_short_payload(payload_buf, value),
                 TagPayload::Int(value) => write_int_payload(payload_buf, value),
@@ -175,7 +209,9 @@ pub mod binary {
                 TagPayload::ByteArray(value) => write_byte_array_payload(payload_buf, &value),
                 TagPayload::IntArray(items) => todo!(),
                 TagPayload::LongArray(items) => todo!(),
-            }
+            };
+
+            1 + name_written + payload_written
         }
     }
 
