@@ -159,6 +159,34 @@ pub mod binary {
             write_string(buf, str)
         }
 
+        /// Writes a NBT list payload `list` into a buffer `buf`.
+        ///
+        /// Returns the amount of bytes written.
+        ///
+        /// The format is:
+        ///
+        ///     - 1 byte for the ID of the type of the list's contents
+        ///     - 4 bytes for the length
+        ///     - every tag
+        pub fn write_list_payload(buf: &mut [u8], (type_id, list): (i8, Vec<Tag>)) -> usize {
+            // TODO: validate as per spec? (all tags must have the same type?)
+
+            buf[0] = type_id as u8;
+
+            BigEndian::write_i16(buf, list.len() as i16);
+
+            let tags_buf = &mut buf[3..];
+
+            let tags_written = list.iter().fold(0, |start, tag| {
+                // TODO: remove clone, consider taking reference in write_tag.
+                let written = write_tag(&mut tags_buf[start..], tag.clone());
+
+                start + written
+            });
+
+            3 + tags_written
+        }
+
         /// Writes a NBT tag `tag` into a buffer `buf`.
         ///
         /// Returns the amount of bytes written.
@@ -204,7 +232,9 @@ pub mod binary {
                 TagPayload::Float(value) => write_float_payload(payload_buf, value),
                 TagPayload::Double(value) => write_double_payload(payload_buf, value),
                 TagPayload::String(value) => write_string_payload(payload_buf, value),
-                TagPayload::List(size, value) => todo!(),
+                TagPayload::List(type_id, value) => {
+                    write_list_payload(payload_buf, (type_id, value))
+                }
                 TagPayload::Compound(hash_map) => todo!(),
                 TagPayload::ByteArray(value) => write_byte_array_payload(payload_buf, &value),
                 TagPayload::IntArray(items) => todo!(),
