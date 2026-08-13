@@ -208,6 +208,27 @@ pub mod binary {
             4 + ints_written
         }
 
+        /// Writes a NBT long array `arr` into a buffer `buf`.
+        ///
+        /// Returns the amount of bytes written.
+        ///
+        /// The format is:
+        /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
+        /// - n long payloads (see [`write_long_payload`])
+        pub fn write_long_array_payload(buf: &mut [u8], arr: Vec<i64>) -> usize {
+            BigEndian::write_i32(buf, arr.len() as i32);
+
+            let ints_buf = &mut buf[4..];
+
+            let ints_written = arr.iter().fold(0, |start, val| {
+                let written = write_long_payload(&mut ints_buf[start..], *val);
+
+                start + written
+            });
+
+            4 + ints_written
+        }
+
         /// Writes a NBT tag `tag` into a buffer `buf`.
         ///
         /// Returns the amount of bytes written.
@@ -259,7 +280,7 @@ pub mod binary {
                 TagPayload::Compound(hash_map) => todo!(),
                 TagPayload::ByteArray(value) => write_byte_array_payload(payload_buf, &value),
                 TagPayload::IntArray(items) => write_int_array_payload(payload_buf, items),
-                TagPayload::LongArray(items) => todo!(),
+                TagPayload::LongArray(items) => write_long_array_payload(payload_buf, items),
             };
 
             1 + name_written + payload_written
@@ -385,6 +406,21 @@ pub mod binary {
             Ok(ints)
         }
 
+        /// Parses a NBT long array tag's payload from a byte slice `input` into a [`Vec<i64>`].
+        pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
+            let len = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+
+            // TODO: zero copy?
+            let mut ints = vec![];
+
+            // TODO: make this not imperative
+            for _ in 0..len {
+                ints.push(parse_long_payload(input)?);
+            }
+
+            Ok(ints)
+        }
+
         /// Parses an NBT tag from a byte slice `input` into a [`Tag`].
         pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
             dispatch! { any;
@@ -400,7 +436,7 @@ pub mod binary {
         0x09 => seq! { Tag { name: parse_tag_name, payload: parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)) } },
         // 0x0a => todo!("compound"),   
         0x0b => seq! { Tag { name: parse_tag_name, payload: parse_int_array_payload.map(TagPayload::IntArray) } },
-        // 0x0c => todo!("long array"), 
+        0x0c =>  seq! { Tag { name: parse_tag_name, payload: parse_long_array_payload.map(TagPayload::LongArray) } },
         _ => fail::<_,_,_>
         // type_id => parse_nbt_non_empty_tag(type_id),
     }
