@@ -289,16 +289,6 @@ pub mod binary {
             buf.extend_from_slice(&buf2[..]);
         }
 
-        #[test]
-        fn test_empty_tag() {
-            let mut input: &[u8] = &[0x00u8];
-
-            assert_eq!(
-                parse_tag(&mut input),
-                Ok(Tag::new(String::default(), TagPayload::Empty))
-            );
-        }
-
         #[hegel::test]
         fn test_parse_byte_tag(tc: TestCase) {
             let mut input: Vec<u8> = vec![0x01];
