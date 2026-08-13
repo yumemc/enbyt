@@ -62,7 +62,7 @@ pub mod binary {
 
         /// Writes a string `str` into a buffer `buf`.
         ///
-        /// The format is: 16 byte integer (Big Endian) indicating the string's length, and the
+        /// The format is: 2 byte integer (Big Endian) indicating the string's length, and the
         /// string's bytes encoded using UTF-8.
         pub fn write_string(buf: &mut [u8], str: String) {
             let length = str.len();
