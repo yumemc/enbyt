@@ -41,7 +41,6 @@ pub enum TagPayload {
 pub mod binary {
 
     pub mod serialize {
-        use std::collections::HashMap;
 
         use byteorder::{BigEndian, ByteOrder};
 
@@ -319,7 +318,7 @@ pub mod binary {
             ModalResult, Parser,
             combinator::{dispatch, empty, fail, repeat, repeat_till, seq},
             error::{ContextError, StrContext},
-            token::{any, take, take_until},
+            token::{any, take},
         };
 
         use crate::{Tag, TagPayload};
