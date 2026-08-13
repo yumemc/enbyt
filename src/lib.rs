@@ -173,9 +173,9 @@ pub mod binary {
 
             buf[0] = type_id as u8;
 
-            BigEndian::write_i16(buf, list.len() as i16);
+            BigEndian::write_i32(buf, list.len() as i32);
 
-            let tags_buf = &mut buf[3..];
+            let tags_buf = &mut buf[5..];
 
             let tags_written = list.iter().fold(0, |start, tag| {
                 // TODO: remove clone, consider taking reference in write_tag.
@@ -184,7 +184,7 @@ pub mod binary {
                 start + written
             });
 
-            3 + tags_written
+            5 + tags_written
         }
 
         /// Writes a NBT tag `tag` into a buffer `buf`.
