@@ -289,12 +289,14 @@ pub mod binary {
 
     pub mod deserialize {
 
+        use std::collections::HashMap;
+
         use byteorder::{BigEndian, ByteOrder};
         use winnow::{
             ModalResult, Parser,
-            combinator::{dispatch, empty, fail, repeat, seq},
+            combinator::{dispatch, empty, fail, repeat, repeat_till, seq},
             error::{ContextError, StrContext},
-            token::{any, take},
+            token::{any, take, take_until},
         };
 
         use crate::{Tag, TagPayload};
@@ -391,6 +393,18 @@ pub mod binary {
             Ok((tag_type_id, tags))
         }
 
+        /// Parses an NBT compound tag's payload from a byte slice `input` into a [`HashMap<>)`].
+        pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, Tag>> {
+            let (tags, _): (Vec<Tag>, u8) = repeat_till(0.., parse_tag, 0x00).parse_next(input)?;
+
+            let tags_map: HashMap<String, Tag> = tags
+                .into_iter()
+                .map(|tag| (tag.name.clone(), tag))
+                .collect();
+
+            Ok(tags_map)
+        }
+
         /// Parses a NBT int array tag's payload from a byte slice `input` into a [`Vec<i32>`].
         pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
             let len = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
@@ -434,7 +448,7 @@ pub mod binary {
         0x07 => seq! { Tag { name: parse_tag_name, payload: parse_byte_array_payload.map(TagPayload::ByteArray) } },
         0x08 => seq! { Tag { name: parse_tag_name, payload: parse_string_payload.map(TagPayload::String) } },
         0x09 => seq! { Tag { name: parse_tag_name, payload: parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)) } },
-        // 0x0a => todo!("compound"),   
+        0x0a => seq! { Tag { name: parse_tag_name, payload: parse_compound_payload.map(TagPayload::Compound) } },
         0x0b => seq! { Tag { name: parse_tag_name, payload: parse_int_array_payload.map(TagPayload::IntArray) } },
         0x0c =>  seq! { Tag { name: parse_tag_name, payload: parse_long_array_payload.map(TagPayload::LongArray) } },
         _ => fail::<_,_,_>
