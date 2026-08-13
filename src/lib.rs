@@ -62,20 +62,24 @@ pub mod binary {
 
         /// Writes a string `str` into a buffer `buf`.
         ///
+        /// Returns the amount of bytes written.
+        ///
         /// The format is: 2 byte integer (Big Endian) indicating the string's length, and the
         /// string's bytes encoded using UTF-8.
-        pub fn write_string(buf: &mut [u8], str: String) {
+        pub fn write_string(buf: &mut [u8], str: String) -> usize {
             let length = str.len();
             let string_bytes = str.as_bytes();
 
             BigEndian::write_u16(buf, length as u16);
             buf[2..2 + string_bytes.len()].copy_from_slice(string_bytes);
+
+            2 + string_bytes.len()
         }
 
         /// Writes a tag name `name` into a buffer `buf`.
         ///
         /// This wraps [`write_string`].
-        pub fn write_tag_name(buf: &mut [u8], name: String) {
+        pub fn write_tag_name(buf: &mut [u8], name: String) -> usize {
             write_string(buf, name)
         }
 
@@ -135,8 +139,9 @@ pub mod binary {
         ///
         /// This wraps [`write_string`]
         pub fn write_string_payload(buf: &mut [u8], str: String) {
-            write_string(buf, str)
+            write_string(buf, str);
         }
+
     }
 
     pub mod deserialize {
