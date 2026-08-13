@@ -60,6 +60,8 @@ pub mod binary {
     pub mod serialize {
         use byteorder::{BigEndian, ByteOrder};
 
+        use crate::{Tag, TagPayload};
+
         /// Writes a string `str` into a buffer `buf`.
         ///
         /// Returns the amount of bytes written.
@@ -142,6 +144,56 @@ pub mod binary {
             write_string(buf, str);
         }
 
+        /// Writes a NBT tag `tag` into a buffer `buf`.
+        ///
+        /// The format is:
+        ///     - 1 byte for the tag type's ID
+        ///
+        ///     (see [`write_string`])
+        ///     - 2 bytes for the length of the name
+        ///     - n bytes for the name's UTF-8 encoded
+        ///
+        ///     - the tag's payload
+        pub fn write_tag(buf: &mut [u8], tag: Tag) {
+            // TODO: this could be extracted out to TagPayload::type_id()
+            let tag_type_id = match tag.payload {
+                crate::TagPayload::Empty => 0x00,
+                crate::TagPayload::Byte(_) => 0x01,
+                crate::TagPayload::Short(_) => 0x02,
+                crate::TagPayload::Int(_) => 0x03,
+                crate::TagPayload::Long(_) => 0x04,
+                crate::TagPayload::Float(_) => 0x05,
+                crate::TagPayload::Double(_) => 0x06,
+                crate::TagPayload::ByteArray(_) => 0x07,
+                crate::TagPayload::String(_) => 0x08,
+                crate::TagPayload::List(_, _) => 0x09,
+                crate::TagPayload::Compound(_) => 0x0a,
+                crate::TagPayload::IntArray(_) => 0x0b,
+                crate::TagPayload::LongArray(_) => 0x0c,
+            };
+
+            buf[0] = tag_type_id as u8;
+
+            let written = write_string(&mut buf[1..], tag.name);
+
+            let payload_buf = &mut buf[written..];
+
+            match tag.payload {
+                TagPayload::Empty => {}
+                TagPayload::Byte(value) => write_byte_payload(payload_buf, value),
+                TagPayload::Short(value) => write_short_payload(payload_buf, value),
+                TagPayload::Int(value) => write_int_payload(payload_buf, value),
+                TagPayload::Long(value) => write_long_payload(payload_buf, value),
+                TagPayload::Float(value) => write_float_payload(payload_buf, value),
+                TagPayload::Double(value) => write_double_payload(payload_buf, value),
+                TagPayload::String(value) => write_string_payload(payload_buf, value),
+                TagPayload::List(size, value) => todo!(),
+                TagPayload::Compound(hash_map) => todo!(),
+                TagPayload::ByteArray(value) => write_byte_array_payload(payload_buf, &value),
+                TagPayload::IntArray(items) => todo!(),
+                TagPayload::LongArray(items) => todo!(),
+            }
+        }
     }
 
     pub mod deserialize {
