@@ -144,12 +144,12 @@ pub mod binary {
         use byteorder::{BigEndian, ByteOrder};
         use winnow::{
             ModalResult, Parser,
-            combinator::repeat,
+            combinator::{dispatch, empty, fail, repeat, seq},
             error::{ContextError, StrContext},
             token::{any, take},
         };
 
-        use crate::{Tag, binary::parse_tag};
+        use crate::{Tag, TagPayload};
 
         /// Parses a string from a byte slice `input` into a [`String`].
         pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
@@ -242,10 +242,10 @@ pub mod binary {
 
             Ok((tag_type_id, tags))
         }
-    }
 
-    pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
-        dispatch! { any;
+        /// Parses an NBT tag from a byte slice `input` into a [`Tag`].
+        pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
+            dispatch! { any;
         0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
         0x01 => seq! { Tag { name: parse_tag_name, payload: parse_byte_payload.map(TagPayload::Byte) } },
         0x02 => seq! { Tag { name: parse_tag_name, payload: parse_short_payload.map(TagPayload::Short) } },
@@ -263,6 +263,7 @@ pub mod binary {
         // type_id => parse_nbt_non_empty_tag(type_id),
     }
     .parse_next(input)
+        }
     }
 
     #[cfg(test)]
@@ -271,6 +272,7 @@ pub mod binary {
         use hegel::TestCase;
         use hegel::generators as gs;
 
+        use crate::binary::deserialize::parse_tag;
         use crate::binary::*;
 
         fn append_nbt_string(buf: &mut Vec<u8>, str: String) {
