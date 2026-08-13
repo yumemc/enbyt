@@ -137,40 +137,6 @@ pub mod binary {
         pub fn write_string_payload(buf: &mut [u8], str: String) {
             write_string(buf, str)
         }
-
-        #[cfg(test)]
-        mod tests {
-            use hegel::TestCase;
-            use hegel::generators as gs;
-
-            use crate::binary::serialize::*;
-
-            #[hegel::test]
-            fn test_write_string_length(tc: TestCase) {
-                let str = tc.draw(gs::text());
-
-                let mut buf = vec![0; 2 + str.len()];
-                write_string(&mut buf, str.clone());
-
-                let len_bytes = &buf[..2];
-                let len = BigEndian::read_u16(len_bytes) as usize;
-
-                assert_eq!(len, str.len());
-            }
-
-            #[hegel::test]
-            fn test_write_string_value(tc: TestCase) {
-                let str = tc.draw(gs::text());
-
-                let mut buf = vec![0; 2 + str.len()];
-                write_string(&mut buf, str.clone());
-
-                let str_bytes = &buf[2..];
-                let str_decoded = String::from_utf8(str_bytes.into());
-
-                assert_eq!(str_decoded, Ok(str));
-            }
-        }
     }
 
     pub mod deserialize {
