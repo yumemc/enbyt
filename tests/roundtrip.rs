@@ -4,6 +4,8 @@ use enbyt::binary::serialize::*;
 use hegel::TestCase;
 use hegel::generators as gs;
 
+use crate::shared::generators::generate_tag;
+
 mod shared;
 
 #[hegel::test]
@@ -105,4 +107,18 @@ fn test_parse_byte_array_payload(tc: TestCase) {
     let parsed = parse_byte_array_payload(&mut &buf[..]);
 
     assert_eq!(parsed, Ok(arr));
+}
+
+#[hegel::test]
+fn test_parse_tag(tc: TestCase) {
+    let tag = tc.draw(generate_tag());
+
+    // generously sized buffer because we really don't know how big the data from hegel is gonna be
+    let mut buf = vec![0; 256];
+
+    write_tag(&mut buf, tag.clone());
+
+    let parsed = parse_tag(&mut &buf[..]);
+
+    assert_eq!(parsed, Ok(tag));
 }
