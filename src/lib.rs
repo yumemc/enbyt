@@ -41,6 +41,8 @@ pub enum TagPayload {
 pub mod binary {
 
     pub mod serialize {
+        use std::collections::HashMap;
+
         use byteorder::{BigEndian, ByteOrder};
 
         use crate::{Tag, TagPayload};
@@ -187,6 +189,25 @@ pub mod binary {
             5 + tags_written
         }
 
+        /// Writes a NBT compound payload `value` into a buffer `buf`.
+        ///
+        /// Returns the amount of bytes written.
+        ///
+        /// The format is:
+        ///
+        ///     - every payload inside the list (the value of this payload)
+        ///     - 0x00, which is an empty NBT tag
+        pub fn write_compound_payload(buf: &mut [u8], value: Vec<Tag>) -> usize {
+            let tags_written = value.into_iter().fold(0, |start, tag| {
+                // TODO: again, make this work with references
+                let written = write_tag(&mut buf[start..], tag.clone());
+
+                start + written
+            });
+
+            1 + tags_written
+        }
+
         /// Writes a NBT int array `arr` into a buffer `buf`.
         ///
         /// Returns the amount of bytes written.
@@ -277,7 +298,9 @@ pub mod binary {
                 TagPayload::List(type_id, value) => {
                     write_list_payload(payload_buf, (type_id, value))
                 }
-                TagPayload::Compound(hash_map) => todo!(),
+                TagPayload::Compound(value) => {
+                    write_compound_payload(payload_buf, value.into_values().collect())
+                }
                 TagPayload::ByteArray(value) => write_byte_array_payload(payload_buf, &value),
                 TagPayload::IntArray(items) => write_int_array_payload(payload_buf, items),
                 TagPayload::LongArray(items) => write_long_array_payload(payload_buf, items),
