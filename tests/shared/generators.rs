@@ -4,7 +4,7 @@ use hegel::TestCase;
 use hegel::generators as gs;
 
 #[hegel::composite]
-fn generate_tag_payload(tc: &TestCase) -> TagPayload {
+pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
     let id = tc.draw(gs::integers::<u8>().min_value(0).max_value(12));
 
     match id {
@@ -29,7 +29,7 @@ fn generate_tag_payload(tc: &TestCase) -> TagPayload {
 }
 
 #[hegel::composite]
-fn generate_tag(tc: &TestCase) -> Tag {
+pub fn generate_tag(tc: &TestCase) -> Tag {
     let name = tc.draw(gs::text());
     let payload = tc.draw(generate_tag_payload());
 

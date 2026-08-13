@@ -4,6 +4,8 @@ use enbyt::binary::serialize::*;
 use hegel::TestCase;
 use hegel::generators as gs;
 
+mod shared;
+
 #[hegel::test]
 fn test_parse_string(tc: TestCase) {
     let str = tc.draw(gs::text());
