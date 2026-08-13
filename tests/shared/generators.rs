@@ -22,8 +22,8 @@ pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
             tc.draw(gs::vecs(generate_tag())),
         ),
         0x0a => todo!(),
-        0x0b => todo!(),
-        0x0c => todo!(),
+        0x0b => TagPayload::IntArray(tc.draw(gs::vecs(gs::integers::<i32>()))),
+        0x0c => TagPayload::LongArray(tc.draw(gs::vecs(gs::integers::<i64>()))),
         _ => unreachable!(),
     }
 }
