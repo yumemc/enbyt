@@ -349,6 +349,21 @@ pub mod binary {
             Ok((tag_type_id, tags))
         }
 
+        /// Parses a NBT int array tag's payload from a byte slice `input` into a [`Vec<i32>`].
+        pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
+            let len = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+
+            // TODO: zero copy?
+            let mut ints = vec![];
+
+            // TODO: make this not imperative
+            for _ in 0..len {
+                ints.push(parse_int_payload(input)?);
+            }
+
+            Ok(ints)
+        }
+
         /// Parses an NBT tag from a byte slice `input` into a [`Tag`].
         pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
             dispatch! { any;
@@ -363,7 +378,7 @@ pub mod binary {
         0x08 => seq! { Tag { name: parse_tag_name, payload: parse_string_payload.map(TagPayload::String) } },
         0x09 => seq! { Tag { name: parse_tag_name, payload: parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)) } },
         // 0x0a => todo!("compound"),   
-        // 0x0b => todo!("int array"),  
+        0x0b => seq! { Tag { name: parse_tag_name, payload: parse_int_array_payload.map(TagPayload::IntArray) } },
         // 0x0c => todo!("long array"), 
         _ => fail::<_,_,_>
         // type_id => parse_nbt_non_empty_tag(type_id),
