@@ -40,22 +40,10 @@ pub enum TagPayload {
 
 pub mod binary {
 
-    use byteorder::{BigEndian, ByteOrder};
-    use winnow::{
-        combinator::{dispatch, empty, fail, repeat, seq},
-        error::{ContextError, StrContext},
-        prelude::*,
-        token::{any, take},
-    };
+    
+    
 
-    use crate::{
-        Tag, TagPayload,
-        binary::deserialize::{
-            parse_byte_array_payload, parse_byte_payload, parse_double_payload,
-            parse_float_payload, parse_int_payload, parse_list_payload, parse_long_payload,
-            parse_short_payload, parse_string, parse_string_payload, parse_tag_name,
-        },
-    };
+    
 
     pub mod serialize {
         use byteorder::{BigEndian, ByteOrder};
