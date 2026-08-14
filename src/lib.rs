@@ -20,7 +20,13 @@ pub struct Tag {
 impl Tag {
     pub fn new(name: Option<String>, payload: TagPayload) -> Result<Self, NBTError> {
         match (name, payload) {
-            (Some(name), TagPayload::Empty) => Err(NBTError::InvalidTagName(Some(name))),
+            (name, TagPayload::Empty) => match name {
+                Some(name) => Err(NBTError::InvalidTagName(Some(name))),
+                None => Ok(Self {
+                    name: None,
+                    payload: TagPayload::Empty,
+                }),
+            },
             (None, _) => Err(NBTError::InvalidTagName(None)),
             (name, payload) => Ok(Self { name, payload }),
         }
