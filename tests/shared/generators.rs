@@ -30,8 +30,16 @@ pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
 
 #[hegel::composite]
 pub fn generate_tag(tc: &TestCase) -> Tag {
-    let name = tc.draw(gs::optional(gs::text()));
-    let payload = tc.draw(generate_tag_payload());
+    // i'm not sure if that's a common (or good) pattern, but essentially: we always want to produce
+    // a Tag, but we can't if the input is invalid. thus, we keep generating until we draw a valid
+    // input to the tag constructor
+    loop {
+        let name = tc.draw(gs::optional(gs::text()));
+        let payload = tc.draw(generate_tag_payload());
 
-    Tag::new(name, payload).unwrap()
+        match Tag::new(name, payload) {
+            Ok(tag) => return tag,
+            Err(_) => continue,
+        }
+    }
 }
