@@ -3,6 +3,14 @@
 /// NBT Format Reference: <https://minecraft.wiki/w/NBT_format>
 use std::collections::HashMap;
 
+use thiserror::Error;
+
+#[derive(Error, Debug, Clone, PartialEq)]
+pub enum NBTError {
+    #[error("invalid tag name {0:?}")]
+    InvalidTagName(Option<String>),
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
     pub name: Option<String>,
@@ -10,8 +18,11 @@ pub struct Tag {
 }
 
 impl Tag {
-    pub fn new(name: Option<String>, payload: TagPayload) -> Self {
-        Self { name, payload }
+    pub fn new(name: Option<String>, payload: TagPayload) -> Result<Self, NBTError> {
+        match payload {
+            TagPayload::Empty if name.is_some() => Err(NBTError::InvalidTagName(name)),
+            payload => Ok(Self { name, payload }),
+        }
     }
 }
 
@@ -336,7 +347,7 @@ pub mod binary {
         use byteorder::{BigEndian, ByteOrder};
         use winnow::{
             ModalResult, Parser,
-            combinator::{dispatch, empty, fail, repeat, repeat_till, seq},
+            combinator::{dispatch, empty, fail, repeat, seq},
             error::{ContextError, StrContext},
             token::{any, take},
         };
@@ -440,10 +451,7 @@ pub mod binary {
             let mut tags_map = HashMap::new();
 
             loop {
-                let tag = match parse_tag.parse_next(input) {
-                    Ok(tag) => tag,
-                    Err(err) => return Err(err),
-                };
+                let tag = parse_tag.parse_next(input)?;
 
                 // stop on empty payload (delimeter)
                 if let TagPayload::Empty = tag.payload {
@@ -498,23 +506,23 @@ pub mod binary {
         /// Parses an NBT tag from a byte slice `input` into a [`Tag`].
         pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
             dispatch! { any;
-        0x0 => empty.value(Tag::new(None, TagPayload::Empty)),
-        0x01 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_byte_payload.map(TagPayload::Byte) } },
-        0x02 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_short_payload.map(TagPayload::Short) } },
-        0x03 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_int_payload.map(TagPayload::Int) } },
-        0x04 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_long_payload.map(TagPayload::Long) } },
-        0x05 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_float_payload.map(TagPayload::Float) } },
-        0x06 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_double_payload.map(TagPayload::Double) } },
-        0x07 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_byte_array_payload.map(TagPayload::ByteArray) } },
-        0x08 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_string_payload.map(TagPayload::String) } },
-        0x09 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)) } },
-        0x0a => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_compound_payload.map(TagPayload::Compound) } },
-        0x0b => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_int_array_payload.map(TagPayload::IntArray) } },
-        0x0c =>  seq! { Tag { name: parse_tag_name.map(Some), payload: parse_long_array_payload.map(TagPayload::LongArray) } },
-        _ => fail::<_,_,_>
-        // type_id => parse_nbt_non_empty_tag(type_id),
-    }
-    .parse_next(input)
+                0x0 => empty.try_map(|_| Tag::new(None, TagPayload::Empty)),
+                0x01 => seq!((parse_tag_name.map(Some), parse_byte_payload.map(TagPayload::Byte))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x02 => seq!((parse_tag_name.map(Some), parse_short_payload.map(TagPayload::Short))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x03 => seq!((parse_tag_name.map(Some), parse_int_payload.map(TagPayload::Int))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x04 => seq!((parse_tag_name.map(Some), parse_long_payload.map(TagPayload::Long))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x05 => seq!((parse_tag_name.map(Some), parse_float_payload.map(TagPayload::Float))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x06 => seq!((parse_tag_name.map(Some), parse_double_payload.map(TagPayload::Double))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x07 => seq!((parse_tag_name.map(Some), parse_byte_array_payload.map(TagPayload::ByteArray))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x08 => seq!((parse_tag_name.map(Some), parse_string_payload.map(TagPayload::String))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x09 => seq!((parse_tag_name.map(Some), parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x0a => seq!((parse_tag_name.map(Some), parse_compound_payload.map(TagPayload::Compound))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x0b => seq!((parse_tag_name.map(Some), parse_int_array_payload.map(TagPayload::IntArray))).try_map(|(name, payload)| Tag::new(name, payload)),
+                0x0c => seq!((parse_tag_name.map(Some), parse_long_array_payload.map(TagPayload::LongArray))).try_map(|(name, payload)| Tag::new(name, payload)),
+                _ => fail::<_,_,_>
+                // type_id => parse_nbt_non_empty_tag(type_id),
+            }
+            .parse_next(input)
         }
     }
 }

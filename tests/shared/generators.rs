@@ -33,5 +33,5 @@ pub fn generate_tag(tc: &TestCase) -> Tag {
     let name = tc.draw(gs::optional(gs::text()));
     let payload = tc.draw(generate_tag_payload());
 
-    Tag::new(name, payload)
+    Tag::new(name, payload).unwrap()
 }
