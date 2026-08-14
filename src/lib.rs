@@ -5,12 +5,12 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
-    pub name: String,
+    pub name: Option<String>,
     pub payload: TagPayload,
 }
 
 impl Tag {
-    pub fn new(name: String, payload: TagPayload) -> Self {
+    pub fn new(name: Option<String>, payload: TagPayload) -> Self {
         Self { name, payload }
     }
 }
@@ -298,7 +298,10 @@ pub mod binary {
 
             buf[0] = tag_type_id as u8;
 
-            let name_written = write_string(&mut buf[1..], tag.name)?;
+            let name_written = match tag.name {
+                Some(name) => write_string(&mut buf[1..], name)?,
+                None => 0,
+            };
 
             let payload_buf = &mut buf[name_written..];
 
@@ -432,14 +435,32 @@ pub mod binary {
             Ok((tag_type_id, tags))
         }
 
-        /// Parses an NBT compound tag's payload from a byte slice `input` into a [`HashMap<>)`].
+        /// Parses an NBT compound tag's payload from a byte slice `input` into a [`HashMap<String, Tag>`].
         pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, Tag>> {
-            let (tags, _): (Vec<Tag>, u8) = repeat_till(0.., parse_tag, 0x00).parse_next(input)?;
+            let mut tags_map = HashMap::new();
 
-            let tags_map: HashMap<String, Tag> = tags
-                .into_iter()
-                .map(|tag| (tag.name.clone(), tag))
-                .collect();
+            loop {
+                let tag = match parse_tag.parse_next(input) {
+                    Ok(tag) => tag,
+                    Err(err) => return Err(err),
+                };
+
+                // stop on empty payload (delimeter)
+                if let TagPayload::Empty = tag.payload {
+                    break;
+                }
+
+                // if there's no name, then we have no key for the output map, so we can't continue.
+                //
+                // (we *could* recover from this and just continue if we were to make the API return
+                // a collection of tags instead, in which case we couldn't need a key, but I'm not
+                // sure if that's ideal.)
+                match &tag.name {
+                    Some(name) => tags_map.insert(name.clone(), tag),
+                    // TODO: add context
+                    None => return Err(winnow::error::ErrMode::Cut(ContextError::new())),
+                };
+            }
 
             Ok(tags_map)
         }
@@ -477,19 +498,19 @@ pub mod binary {
         /// Parses an NBT tag from a byte slice `input` into a [`Tag`].
         pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
             dispatch! { any;
-        0x0 => empty.value(Tag::new(String::default(), TagPayload::Empty)),
-        0x01 => seq! { Tag { name: parse_tag_name, payload: parse_byte_payload.map(TagPayload::Byte) } },
-        0x02 => seq! { Tag { name: parse_tag_name, payload: parse_short_payload.map(TagPayload::Short) } },
-        0x03 => seq! { Tag { name: parse_tag_name, payload: parse_int_payload.map(TagPayload::Int) } },
-        0x04 => seq! { Tag { name: parse_tag_name, payload: parse_long_payload.map(TagPayload::Long) } },
-        0x05 => seq! { Tag { name: parse_tag_name, payload: parse_float_payload.map(TagPayload::Float) } },
-        0x06 => seq! { Tag { name: parse_tag_name, payload: parse_double_payload.map(TagPayload::Double) } },
-        0x07 => seq! { Tag { name: parse_tag_name, payload: parse_byte_array_payload.map(TagPayload::ByteArray) } },
-        0x08 => seq! { Tag { name: parse_tag_name, payload: parse_string_payload.map(TagPayload::String) } },
-        0x09 => seq! { Tag { name: parse_tag_name, payload: parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)) } },
-        0x0a => seq! { Tag { name: parse_tag_name, payload: parse_compound_payload.map(TagPayload::Compound) } },
-        0x0b => seq! { Tag { name: parse_tag_name, payload: parse_int_array_payload.map(TagPayload::IntArray) } },
-        0x0c =>  seq! { Tag { name: parse_tag_name, payload: parse_long_array_payload.map(TagPayload::LongArray) } },
+        0x0 => empty.value(Tag::new(None, TagPayload::Empty)),
+        0x01 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_byte_payload.map(TagPayload::Byte) } },
+        0x02 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_short_payload.map(TagPayload::Short) } },
+        0x03 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_int_payload.map(TagPayload::Int) } },
+        0x04 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_long_payload.map(TagPayload::Long) } },
+        0x05 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_float_payload.map(TagPayload::Float) } },
+        0x06 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_double_payload.map(TagPayload::Double) } },
+        0x07 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_byte_array_payload.map(TagPayload::ByteArray) } },
+        0x08 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_string_payload.map(TagPayload::String) } },
+        0x09 => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)) } },
+        0x0a => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_compound_payload.map(TagPayload::Compound) } },
+        0x0b => seq! { Tag { name: parse_tag_name.map(Some), payload: parse_int_array_payload.map(TagPayload::IntArray) } },
+        0x0c =>  seq! { Tag { name: parse_tag_name.map(Some), payload: parse_long_array_payload.map(TagPayload::LongArray) } },
         _ => fail::<_,_,_>
         // type_id => parse_nbt_non_empty_tag(type_id),
     }

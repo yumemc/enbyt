@@ -30,7 +30,7 @@ pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
 
 #[hegel::composite]
 pub fn generate_tag(tc: &TestCase) -> Tag {
-    let name = tc.draw(gs::text());
+    let name = tc.draw(gs::optional(gs::text()));
     let payload = tc.draw(generate_tag_payload());
 
     Tag::new(name, payload)
