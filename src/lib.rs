@@ -21,6 +21,7 @@ impl Tag {
     pub fn new(name: Option<String>, payload: TagPayload) -> Result<Self, NBTError> {
         match (name, payload) {
             (Some(name), TagPayload::Empty) => Err(NBTError::InvalidTagName(Some(name))),
+            (None, _) => Err(NBTError::InvalidTagName(None)),
             (name, payload) => Ok(Self { name, payload }),
         }
     }
