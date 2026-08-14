@@ -31,6 +31,13 @@ impl Tag {
             (name, payload) => Ok(Self { name, payload }),
         }
     }
+
+    /// Returns the ID (as per the spec) of the payload's type.
+    ///
+    /// Calls [`TagPayload::type_id`].
+    pub fn type_id(&self) -> u8 {
+        self.payload.type_id()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -54,6 +61,27 @@ pub enum TagPayload {
     ByteArray(Vec<u8>),
     IntArray(Vec<i32>),
     LongArray(Vec<i64>),
+}
+
+impl TagPayload {
+    /// Returns the ID (as per the spec) of the payload's type.
+    pub fn type_id(&self) -> u8 {
+        match self {
+            crate::TagPayload::Empty => 0x00,
+            crate::TagPayload::Byte(_) => 0x01,
+            crate::TagPayload::Short(_) => 0x02,
+            crate::TagPayload::Int(_) => 0x03,
+            crate::TagPayload::Long(_) => 0x04,
+            crate::TagPayload::Float(_) => 0x05,
+            crate::TagPayload::Double(_) => 0x06,
+            crate::TagPayload::ByteArray(_) => 0x07,
+            crate::TagPayload::String(_) => 0x08,
+            crate::TagPayload::List(_, _) => 0x09,
+            crate::TagPayload::Compound(_) => 0x0a,
+            crate::TagPayload::IntArray(_) => 0x0b,
+            crate::TagPayload::LongArray(_) => 0x0c,
+        }
+    }
 }
 
 pub mod binary {
@@ -283,22 +311,7 @@ pub mod binary {
         ///
         ///     - the tag's payload
         pub fn write_tag(buf: &mut [u8], tag: Tag) -> Result<usize, NBTError> {
-            // TODO: this could be extracted out to TagPayload::type_id()
-            let tag_type_id = match tag.payload {
-                crate::TagPayload::Empty => 0x00,
-                crate::TagPayload::Byte(_) => 0x01,
-                crate::TagPayload::Short(_) => 0x02,
-                crate::TagPayload::Int(_) => 0x03,
-                crate::TagPayload::Long(_) => 0x04,
-                crate::TagPayload::Float(_) => 0x05,
-                crate::TagPayload::Double(_) => 0x06,
-                crate::TagPayload::ByteArray(_) => 0x07,
-                crate::TagPayload::String(_) => 0x08,
-                crate::TagPayload::List(_, _) => 0x09,
-                crate::TagPayload::Compound(_) => 0x0a,
-                crate::TagPayload::IntArray(_) => 0x0b,
-                crate::TagPayload::LongArray(_) => 0x0c,
-            };
+            let tag_type_id = tag.type_id();
 
             buf[0] = tag_type_id as u8;
 
