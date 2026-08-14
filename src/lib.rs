@@ -19,9 +19,9 @@ pub struct Tag {
 
 impl Tag {
     pub fn new(name: Option<String>, payload: TagPayload) -> Result<Self, NBTError> {
-        match payload {
-            TagPayload::Empty if name.is_some() => Err(NBTError::InvalidTagName(name)),
-            payload => Ok(Self { name, payload }),
+        match (name, payload) {
+            (Some(name), TagPayload::Empty) => Err(NBTError::InvalidTagName(Some(name))),
+            (name, payload) => Ok(Self { name, payload }),
         }
     }
 }
