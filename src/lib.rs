@@ -1,17 +1,20 @@
 /// enbyt: a Rust NBT library
 ///
 /// NBT Format Reference: <https://minecraft.wiki/w/NBT_format>
-use std::collections::HashMap;
+use std::{collections::HashMap, io};
 
 use thiserror::Error;
 
-#[derive(Error, Debug, Clone, PartialEq)]
+#[derive(Error, Debug)]
 pub enum NBTError {
     #[error("invalid tag name {0:?}")]
     InvalidTagName(Option<String>),
 
     #[error("item does not match expected payload type: {0:?}")]
     UnexpectedType(u8, Tag),
+
+    #[error("io error: {0:?}")]
+    IO(#[from] io::Error),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -91,6 +94,8 @@ pub mod binary {
 
     pub mod serialize {
 
+        use std::io::Write;
+
         use crate::{NBTError, Tag, TagPayload};
 
         /// Writes a string `str` into a buffer `buf`.
@@ -99,15 +104,16 @@ pub mod binary {
         ///
         /// The format is: 2 byte integer (Big Endian) indicating the string's length, and the
         /// string's bytes encoded using UTF-8.
-        pub fn write_string(buf: &mut [u8], str: String) -> Result<usize, NBTError> {
+        pub fn write_string<W: Write>(w: &mut W, str: String) -> Result<usize, NBTError> {
             let length = str.len() as u16;
             let string_bytes = str.as_bytes();
 
-            buf[0..2].copy_from_slice(&length.to_be_bytes());
+            let mut written = 0;
 
-            buf[2..2 + string_bytes.len()].copy_from_slice(string_bytes);
+            written += w.write(&length.to_be_bytes())?;
+            written += w.write(string_bytes)?;
 
-            Ok(2 + string_bytes.len())
+            Ok(written)
         }
 
         /// Writes a tag name `name` into a buffer `buf`.
@@ -115,8 +121,8 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This wraps [`write_string`].
-        pub fn write_tag_name(buf: &mut [u8], name: String) -> Result<usize, NBTError> {
-            write_string(buf, name)
+        pub fn write_tag_name<W: Write>(w: &mut W, name: String) -> Result<usize, NBTError> {
+            write_string(w, name)
         }
 
         /// Writes a a signed 1 byte number `byte` into a buffer `buf`.
@@ -124,10 +130,8 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in two's complement form.
-        pub fn write_byte_payload(buf: &mut [u8], byte: i8) -> Result<usize, NBTError> {
-            buf[0] = byte as u8;
-
-            Ok(1)
+        pub fn write_byte_payload<W: Write>(w: &mut W, byte: i8) -> Result<usize, NBTError> {
+            Ok(w.write(&[byte as u8])?)
         }
 
         /// Writes a a signed 2 byte number `value` into a buffer `buf`.
@@ -135,10 +139,8 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_short_payload(buf: &mut [u8], value: i16) -> Result<usize, NBTError> {
-            buf[0..2].copy_from_slice(&value.to_be_bytes());
-
-            Ok(2)
+        pub fn write_short_payload<W: Write>(w: &mut W, value: i16) -> Result<usize, NBTError> {
+            Ok(w.write(&value.to_be_bytes())?)
         }
 
         /// Writes a a signed 4 byte number `value` into a buffer `buf`.
@@ -146,10 +148,8 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_int_payload(buf: &mut [u8], value: i32) -> Result<usize, NBTError> {
-            buf[0..4].copy_from_slice(&value.to_be_bytes());
-
-            Ok(4)
+        pub fn write_int_payload<W: Write>(w: &mut W, value: i32) -> Result<usize, NBTError> {
+            Ok(w.write(&value.to_be_bytes())?)
         }
 
         /// Writes a a signed 8 byte number `value` into a buffer `buf`.
@@ -157,10 +157,8 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_long_payload(buf: &mut [u8], value: i64) -> Result<usize, NBTError> {
-            buf[0..8].copy_from_slice(&value.to_be_bytes());
-
-            Ok(8)
+        pub fn write_long_payload<W: Write>(w: &mut W, value: i64) -> Result<usize, NBTError> {
+            Ok(w.write(&value.to_be_bytes())?)
         }
 
         /// Writes a a signed 4 byte float number `value` into a buffer `buf`.
@@ -168,10 +166,8 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_float_payload(buf: &mut [u8], value: f32) -> Result<usize, NBTError> {
-            buf[0..4].copy_from_slice(&value.to_be_bytes());
-
-            Ok(4)
+        pub fn write_float_payload<W: Write>(w: &mut W, value: f32) -> Result<usize, NBTError> {
+            Ok(w.write(&value.to_be_bytes())?)
         }
 
         /// Writes a a signed 8 byte float number `value` into a buffer `buf`.
@@ -179,10 +175,8 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This encodes it in Big Endian form.
-        pub fn write_double_payload(buf: &mut [u8], value: f64) -> Result<usize, NBTError> {
-            buf[0..8].copy_from_slice(&value.to_be_bytes());
-
-            Ok(8)
+        pub fn write_double_payload<W: Write>(w: &mut W, value: f64) -> Result<usize, NBTError> {
+            Ok(w.write(&value.to_be_bytes())?)
         }
 
         /// Writes a NBT byte array `arr` into a buffer `buf`.
@@ -191,14 +185,18 @@ pub mod binary {
         ///
         /// The format is: 4 bytes for the size of the array (Big Endian-encoded) then the literal
         /// byte array.
-        pub fn write_byte_array_payload(buf: &mut [u8], arr: &[u8]) -> Result<usize, NBTError> {
+        pub fn write_byte_array_payload<W: Write>(
+            w: &mut W,
+            arr: &[u8],
+        ) -> Result<usize, NBTError> {
+            let mut written = 0;
+
             let length = arr.len() as i32;
 
-            buf[0..4].copy_from_slice(&length.to_be_bytes());
+            written += w.write(&length.to_be_bytes())?;
+            written += w.write(arr)?;
 
-            buf[4..4 + arr.len()].copy_from_slice(arr);
-
-            Ok(4 + arr.len())
+            Ok(written)
         }
 
         /// Writes a NBT string payload `str` into a buffer `buf`.
@@ -206,8 +204,8 @@ pub mod binary {
         /// Returns the amount of bytes written.
         ///
         /// This wraps [`write_string`]
-        pub fn write_string_payload(buf: &mut [u8], str: String) -> Result<usize, NBTError> {
-            write_string(buf, str)
+        pub fn write_string_payload<W: Write>(w: &mut W, str: String) -> Result<usize, NBTError> {
+            write_string(w, str)
         }
 
         /// Writes a NBT list payload `list` into a buffer `buf`.
@@ -219,10 +217,12 @@ pub mod binary {
         ///     - 1 byte for the ID of the type of the list's contents
         ///     - 4 bytes for the length
         ///     - every tag
-        pub fn write_list_payload(
-            buf: &mut [u8],
+        pub fn write_list_payload<W: Write>(
+            w: &mut W,
             (type_id, list): (i8, Vec<Tag>),
         ) -> Result<usize, NBTError> {
+            let mut written = 0;
+
             let type_id = type_id as u8;
 
             // ensure all items are of the same type
@@ -232,20 +232,16 @@ pub mod binary {
                 return Err(NBTError::UnexpectedType(type_id, tag.clone()));
             }
 
-            buf[0] = type_id;
+            let length = list.len() as i32;
 
-            buf[1..5].copy_from_slice(&(list.len() as i32).to_be_bytes());
+            written += w.write(&[type_id])?;
+            written += w.write(&length.to_be_bytes())?;
 
-            let tags_buf = &mut buf[5..];
+            for item in list {
+                written += write_tag(w, item)?;
+            }
 
-            let tags_written = list.iter().try_fold(0, |start, tag| {
-                // TODO: remove clone, consider taking reference in write_tag.
-                let written = write_tag(&mut tags_buf[start..], tag.clone())?;
-
-                Ok(start + written)
-            })?;
-
-            Ok(5 + tags_written)
+            Ok(written)
         }
 
         /// Writes a NBT compound payload `value` into a buffer `buf`.
@@ -256,15 +252,17 @@ pub mod binary {
         ///
         ///     - every payload inside the list (the value of this payload)
         ///     - 0x00, which is an empty NBT tag
-        pub fn write_compound_payload(buf: &mut [u8], value: Vec<Tag>) -> Result<usize, NBTError> {
-            let tags_written = value.into_iter().try_fold(0, |start, tag| {
-                // TODO: again, make this work with references
-                let written = write_tag(&mut buf[start..], tag.clone())?;
+        pub fn write_compound_payload<W: Write>(
+            w: &mut W,
+            value: Vec<Tag>,
+        ) -> Result<usize, NBTError> {
+            let mut written = 0;
 
-                Ok(start + written)
-            })?;
+            for item in value {
+                written += write_tag(w, item)?;
+            }
 
-            Ok(1 + tags_written)
+            Ok(written)
         }
 
         /// Writes a NBT int array `arr` into a buffer `buf`.
@@ -274,18 +272,21 @@ pub mod binary {
         /// The format is:
         /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
         /// - n int payloads (see [`write_int_payload`])
-        pub fn write_int_array_payload(buf: &mut [u8], arr: Vec<i32>) -> Result<usize, NBTError> {
-            buf[0..4].copy_from_slice(&(arr.len() as i32).to_be_bytes());
+        pub fn write_int_array_payload<W: Write>(
+            w: &mut W,
+            arr: Vec<i32>,
+        ) -> Result<usize, NBTError> {
+            let mut written = 0;
 
-            let ints_buf = &mut buf[4..];
+            let length = arr.len() as i32;
 
-            let ints_written = arr.iter().try_fold(0, |start, val| {
-                let written = write_int_payload(&mut ints_buf[start..], *val)?;
+            written += w.write(&length.to_be_bytes())?;
 
-                Ok(start + written)
-            })?;
+            for item in arr {
+                written += write_int_payload(w, item)?;
+            }
 
-            Ok(4 + ints_written)
+            Ok(written)
         }
 
         /// Writes a NBT long array `arr` into a buffer `buf`.
@@ -295,18 +296,21 @@ pub mod binary {
         /// The format is:
         /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
         /// - n long payloads (see [`write_long_payload`])
-        pub fn write_long_array_payload(buf: &mut [u8], arr: Vec<i64>) -> Result<usize, NBTError> {
-            buf[0..4].copy_from_slice(&(arr.len() as i32).to_be_bytes());
+        pub fn write_long_array_payload<W: Write>(
+            w: &mut W,
+            arr: Vec<i64>,
+        ) -> Result<usize, NBTError> {
+            let mut written = 0;
 
-            let ints_buf = &mut buf[4..];
+            let length = arr.len() as i32;
 
-            let ints_written = arr.iter().try_fold(0, |start, val| {
-                let written = write_long_payload(&mut ints_buf[start..], *val)?;
+            written += w.write(&length.to_be_bytes())?;
 
-                Ok(start + written)
-            })?;
+            for item in arr {
+                written += write_long_payload(w, item)?;
+            }
 
-            Ok(4 + ints_written)
+            Ok(written)
         }
 
         /// Writes a NBT tag `tag` into a buffer `buf`.
@@ -321,39 +325,37 @@ pub mod binary {
         ///     - n bytes for the name's UTF-8 encoded
         ///
         ///     - the tag's payload
-        pub fn write_tag(buf: &mut [u8], tag: Tag) -> Result<usize, NBTError> {
+        pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
+            let mut written = 0;
+
             let tag_type_id = tag.type_id();
 
-            buf[0] = tag_type_id;
+            written += w.write(&tag_type_id.to_be_bytes())?;
 
-            let name_written = match tag.name {
-                Some(name) => write_string(&mut buf[1..], name)?,
+            written += match tag.name {
+                Some(name) => write_string(w, name)?,
                 None => 0,
             };
 
-            let payload_buf = &mut buf[name_written..];
-
-            let payload_written = match tag.payload {
+            written += match tag.payload {
                 TagPayload::Empty => Ok(0),
-                TagPayload::Byte(value) => write_byte_payload(payload_buf, value),
-                TagPayload::Short(value) => write_short_payload(payload_buf, value),
-                TagPayload::Int(value) => write_int_payload(payload_buf, value),
-                TagPayload::Long(value) => write_long_payload(payload_buf, value),
-                TagPayload::Float(value) => write_float_payload(payload_buf, value),
-                TagPayload::Double(value) => write_double_payload(payload_buf, value),
-                TagPayload::String(value) => write_string_payload(payload_buf, value),
-                TagPayload::List(type_id, value) => {
-                    write_list_payload(payload_buf, (type_id, value))
-                }
+                TagPayload::Byte(value) => write_byte_payload(w, value),
+                TagPayload::Short(value) => write_short_payload(w, value),
+                TagPayload::Int(value) => write_int_payload(w, value),
+                TagPayload::Long(value) => write_long_payload(w, value),
+                TagPayload::Float(value) => write_float_payload(w, value),
+                TagPayload::Double(value) => write_double_payload(w, value),
+                TagPayload::String(value) => write_string_payload(w, value),
+                TagPayload::List(type_id, value) => write_list_payload(w, (type_id, value)),
                 TagPayload::Compound(value) => {
-                    write_compound_payload(payload_buf, value.into_values().collect())
+                    write_compound_payload(w, value.into_values().collect())
                 }
-                TagPayload::ByteArray(value) => write_byte_array_payload(payload_buf, &value),
-                TagPayload::IntArray(items) => write_int_array_payload(payload_buf, items),
-                TagPayload::LongArray(items) => write_long_array_payload(payload_buf, items),
+                TagPayload::ByteArray(value) => write_byte_array_payload(w, &value),
+                TagPayload::IntArray(items) => write_int_array_payload(w, items),
+                TagPayload::LongArray(items) => write_long_array_payload(w, items),
             }?;
 
-            Ok(1 + name_written + payload_written)
+            Ok(written)
         }
     }
 
