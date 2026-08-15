@@ -100,10 +100,10 @@ pub mod binary {
         /// The format is: 2 byte integer (Big Endian) indicating the string's length, and the
         /// string's bytes encoded using UTF-8.
         pub fn write_string(buf: &mut [u8], str: String) -> Result<usize, NBTError> {
-            let length = str.len();
+            let length = str.len() as u16;
             let string_bytes = str.as_bytes();
 
-            buf[0..2].copy_from_slice(&(length as u16).to_be_bytes());
+            buf[0..2].copy_from_slice(&length.to_be_bytes());
 
             buf[2..2 + string_bytes.len()].copy_from_slice(string_bytes);
 
@@ -192,7 +192,9 @@ pub mod binary {
         /// The format is: 4 bytes for the size of the array (Big Endian-encoded) then the literal
         /// byte array.
         pub fn write_byte_array_payload(buf: &mut [u8], arr: &[u8]) -> Result<usize, NBTError> {
-            buf[0..4].copy_from_slice(&(arr.len() as i32).to_be_bytes());
+            let length = arr.len() as i32;
+
+            buf[0..4].copy_from_slice(&length.to_be_bytes());
 
             buf[4..4 + arr.len()].copy_from_slice(arr);
 
