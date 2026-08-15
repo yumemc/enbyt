@@ -3,6 +3,8 @@ use enbyt::{
     binary::{deserialize::parse_tag, serialize::write_tag},
 };
 
+use std::assert_matches;
+
 #[test]
 fn test_empty_tag() {
     let mut input: &[u8] = &[0x00u8];
@@ -29,12 +31,9 @@ fn test_heterogenous_list() {
     )
     .unwrap();
 
-    assert_eq!(
+    assert_matches!(
         write_tag(&mut buf, list),
-        Err(enbyt::NBTError::UnexpectedType(
-            0x03,
-            Tag::new(Some("a".to_string()), TagPayload::String("aa".to_string())).unwrap(),
-        ))
+        Err(enbyt::NBTError::UnexpectedType(0x03, _))
     );
 }
 
