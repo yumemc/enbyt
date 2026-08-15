@@ -13,7 +13,7 @@ fn test_parse_string(tc: TestCase) {
     let str = tc.draw(gs::text());
 
     let mut buf = vec![0; 2 + str.len()];
-    write_string(&mut buf, str.clone());
+    write_string(&mut buf, str.clone()).unwrap();
 
     assert_eq!(parse_string(&mut &buf[..]), Ok(str));
 }
@@ -24,7 +24,7 @@ fn test_parse_byte_payload(tc: TestCase) {
 
     let mut buf = vec![0; 1];
 
-    write_byte_payload(&mut buf, byte);
+    write_byte_payload(&mut buf, byte).unwrap();
 
     let parsed = parse_byte_payload(&mut &buf[..]);
 
@@ -37,7 +37,7 @@ fn test_parse_short_payload(tc: TestCase) {
 
     let mut buf = vec![0; 2];
 
-    write_short_payload(&mut buf, num);
+    write_short_payload(&mut buf, num).unwrap();
 
     let parsed = parse_short_payload(&mut &buf[..]);
 
@@ -50,7 +50,7 @@ fn test_parse_int_payload(tc: TestCase) {
 
     let mut buf = vec![0; 4];
 
-    write_int_payload(&mut buf, num);
+    write_int_payload(&mut buf, num).unwrap();
 
     let parsed = parse_int_payload(&mut &buf[..]);
 
@@ -63,7 +63,7 @@ fn test_parse_long_payload(tc: TestCase) {
 
     let mut buf = vec![0; 8];
 
-    write_long_payload(&mut buf, num);
+    write_long_payload(&mut buf, num).unwrap();
 
     let parsed = parse_long_payload(&mut &buf[..]);
 
@@ -76,7 +76,7 @@ fn test_parse_float_payload(tc: TestCase) {
 
     let mut buf = vec![0; 4];
 
-    write_float_payload(&mut buf, num);
+    write_float_payload(&mut buf, num).unwrap();
 
     let parsed = parse_float_payload(&mut &buf[..]);
 
@@ -91,7 +91,7 @@ fn test_parse_double_payload(tc: TestCase) {
 
     let mut buf = vec![0; 8];
 
-    write_double_payload(&mut buf, num);
+    write_double_payload(&mut buf, num).unwrap();
 
     let parsed = parse_double_payload(&mut &buf[..]);
 
@@ -106,7 +106,7 @@ fn test_parse_byte_array_payload(tc: TestCase) {
 
     let mut buf = vec![0; 4 + arr.len()];
 
-    write_byte_array_payload(&mut buf, &arr);
+    write_byte_array_payload(&mut buf, &arr).unwrap();
 
     let parsed = parse_byte_array_payload(&mut &buf[..]);
 
@@ -120,7 +120,7 @@ fn test_parse_tag(tc: TestCase) {
     // generously sized buffer because we really don't know how big the data from hegel is gonna be
     let mut buf = vec![0; 256];
 
-    write_tag(&mut buf, tag.clone());
+    write_tag(&mut buf, tag.clone()).unwrap();
 
     let parsed = parse_tag(&mut &buf[..]);
 
