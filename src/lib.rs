@@ -9,6 +9,9 @@ use thiserror::Error;
 pub enum NBTError {
     #[error("invalid tag name {0:?}")]
     InvalidTagName(Option<String>),
+
+    #[error("item does not match expected payload type: {0:?}")]
+    UnexpectedType(u8, Tag),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -219,9 +222,16 @@ pub mod binary {
             buf: &mut [u8],
             (type_id, list): (i8, Vec<Tag>),
         ) -> Result<usize, NBTError> {
-            // TODO: validate as per spec? (all tags must have the same type?)
+            let type_id = type_id as u8;
 
-            buf[0] = type_id as u8;
+            // ensure all items are of the same type
+            let first_different = list.iter().find(|tag| tag.type_id() != type_id);
+
+            if let Some(tag) = first_different {
+                return Err(NBTError::UnexpectedType(type_id, tag.clone()));
+            }
+
+            buf[0] = type_id;
 
             BigEndian::write_i32(buf, list.len() as i32);
 
