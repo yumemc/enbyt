@@ -91,8 +91,6 @@ pub mod binary {
 
     pub mod serialize {
 
-        use byteorder::{BigEndian, ByteOrder};
-
         use crate::{NBTError, Tag, TagPayload};
 
         /// Writes a string `str` into a buffer `buf`.
@@ -360,7 +358,6 @@ pub mod binary {
 
         use std::collections::HashMap;
 
-        use byteorder::{BigEndian, ByteOrder};
         use winnow::{
             ModalResult, Parser,
             combinator::{dispatch, empty, fail, repeat, seq},
