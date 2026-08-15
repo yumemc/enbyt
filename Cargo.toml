@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-byteorder = "1.5.0"
 deflate = { version = "1.0.0", features = ["gzip"] }
 thiserror = "2.0.20"
 winnow = "1.0.4"
