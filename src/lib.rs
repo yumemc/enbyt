@@ -103,7 +103,8 @@ pub mod binary {
             let length = str.len();
             let string_bytes = str.as_bytes();
 
-            BigEndian::write_u16(buf, length as u16);
+            buf[0..2].copy_from_slice(&(length as u16).to_be_bytes());
+
             buf[2..2 + string_bytes.len()].copy_from_slice(string_bytes);
 
             Ok(2 + string_bytes.len())
@@ -135,7 +136,7 @@ pub mod binary {
         ///
         /// This encodes it in Big Endian form.
         pub fn write_short_payload(buf: &mut [u8], value: i16) -> Result<usize, NBTError> {
-            BigEndian::write_i16(buf, value);
+            buf[0..2].copy_from_slice(&value.to_be_bytes());
 
             Ok(2)
         }
@@ -146,7 +147,7 @@ pub mod binary {
         ///
         /// This encodes it in Big Endian form.
         pub fn write_int_payload(buf: &mut [u8], value: i32) -> Result<usize, NBTError> {
-            BigEndian::write_i32(buf, value);
+            buf[0..4].copy_from_slice(&value.to_be_bytes());
 
             Ok(4)
         }
@@ -157,7 +158,7 @@ pub mod binary {
         ///
         /// This encodes it in Big Endian form.
         pub fn write_long_payload(buf: &mut [u8], value: i64) -> Result<usize, NBTError> {
-            BigEndian::write_i64(buf, value);
+            buf[0..8].copy_from_slice(&value.to_be_bytes());
 
             Ok(8)
         }
@@ -168,7 +169,7 @@ pub mod binary {
         ///
         /// This encodes it in Big Endian form.
         pub fn write_float_payload(buf: &mut [u8], value: f32) -> Result<usize, NBTError> {
-            BigEndian::write_f32(buf, value);
+            buf[0..4].copy_from_slice(&value.to_be_bytes());
 
             Ok(4)
         }
@@ -179,7 +180,7 @@ pub mod binary {
         ///
         /// This encodes it in Big Endian form.
         pub fn write_double_payload(buf: &mut [u8], value: f64) -> Result<usize, NBTError> {
-            BigEndian::write_f64(buf, value);
+            buf[0..8].copy_from_slice(&value.to_be_bytes());
 
             Ok(8)
         }
@@ -191,7 +192,7 @@ pub mod binary {
         /// The format is: 4 bytes for the size of the array (Big Endian-encoded) then the literal
         /// byte array.
         pub fn write_byte_array_payload(buf: &mut [u8], arr: &[u8]) -> Result<usize, NBTError> {
-            BigEndian::write_i32(buf, arr.len() as i32);
+            buf[0..4].copy_from_slice(&(arr.len() as i32).to_be_bytes());
 
             buf[4..4 + arr.len()].copy_from_slice(arr);
 
@@ -231,7 +232,7 @@ pub mod binary {
 
             buf[0] = type_id;
 
-            BigEndian::write_i32(buf, list.len() as i32);
+            buf[1..5].copy_from_slice(&(list.len() as i32).to_be_bytes());
 
             let tags_buf = &mut buf[5..];
 
@@ -272,7 +273,7 @@ pub mod binary {
         /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
         /// - n int payloads (see [`write_int_payload`])
         pub fn write_int_array_payload(buf: &mut [u8], arr: Vec<i32>) -> Result<usize, NBTError> {
-            BigEndian::write_i32(buf, arr.len() as i32);
+            buf[0..4].copy_from_slice(&(arr.len() as i32).to_be_bytes());
 
             let ints_buf = &mut buf[4..];
 
@@ -293,7 +294,7 @@ pub mod binary {
         /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
         /// - n long payloads (see [`write_long_payload`])
         pub fn write_long_array_payload(buf: &mut [u8], arr: Vec<i64>) -> Result<usize, NBTError> {
-            BigEndian::write_i32(buf, arr.len() as i32);
+            buf[0..4].copy_from_slice(&(arr.len() as i32).to_be_bytes());
 
             let ints_buf = &mut buf[4..];
 
