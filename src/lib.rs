@@ -361,6 +361,7 @@ pub mod binary {
 
         use winnow::{
             ModalResult, Parser,
+            binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16},
             combinator::{dispatch, empty, fail, repeat, seq},
             error::{ContextError, StrContext},
             token::{any, take},
@@ -371,10 +372,9 @@ pub mod binary {
         /// Parses a string from a byte slice `input` into a [`String`].
         pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
             // 2 bytes of length
-            let length = take(2usize)
+            let length = be_u16
                 .context(StrContext::Label("string length"))
-                .parse_next(input)
-                .map(BigEndian::read_u16)?;
+                .parse_next(input)?;
 
             // n bytes of string
             let string_bytes = take(length as usize)
@@ -405,32 +405,32 @@ pub mod binary {
 
         /// Parses a NBT short tag's payload from a byte slice `input` into an [`i16`].
         pub fn parse_short_payload(input: &mut &[u8]) -> ModalResult<i16> {
-            take(2usize).parse_next(input).map(BigEndian::read_i16)
+            be_i16.parse_next(input)
         }
 
         /// Parses a NBT int tag's payload from a byte slice `input` into an [`i32`].
         pub fn parse_int_payload(input: &mut &[u8]) -> ModalResult<i32> {
-            take(4usize).parse_next(input).map(BigEndian::read_i32)
+            be_i32.parse_next(input)
         }
 
         /// Parses a NBT long tag's payload from a byte slice `input` into an [`i64`].
         pub fn parse_long_payload(input: &mut &[u8]) -> ModalResult<i64> {
-            take(8usize).parse_next(input).map(BigEndian::read_i64)
+            be_i64.parse_next(input)
         }
 
         /// Parses a NBT float tag's payload from a byte slice `input` into an [`f32`].
         pub fn parse_float_payload(input: &mut &[u8]) -> ModalResult<f32> {
-            take(4usize).parse_next(input).map(BigEndian::read_f32)
+            be_f32.parse_next(input)
         }
 
         /// Parses a NBT float tag's payload from a byte slice `input` into an [`f64`].
         pub fn parse_double_payload(input: &mut &[u8]) -> ModalResult<f64> {
-            take(8usize).parse_next(input).map(BigEndian::read_f64)
+            be_f64.parse_next(input)
         }
 
         /// Parses a NBT byte array tag's payload from a byte slice `input` into a [`Vec<u8>`].
         pub fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<u8>> {
-            let len = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+            let len = be_i32.parse_next(input)? as usize;
 
             // TODO: zero copy?
             let bytes = take(len).parse_next(input)?;
@@ -449,7 +449,7 @@ pub mod binary {
         /// containing the size and the tag array.
         pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(i8, Vec<Tag>)> {
             let tag_type_id = any.parse_next(input)? as i8;
-            let size = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+            let size = be_i32.parse_next(input)? as usize;
 
             let tags = repeat(size, parse_tag).parse_next(input)?;
 
@@ -489,7 +489,7 @@ pub mod binary {
 
         /// Parses a NBT int array tag's payload from a byte slice `input` into a [`Vec<i32>`].
         pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
-            let len = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+            let len = be_i32.parse_next(input)? as usize;
 
             // TODO: zero copy?
             let mut ints = vec![];
@@ -504,7 +504,7 @@ pub mod binary {
 
         /// Parses a NBT long array tag's payload from a byte slice `input` into a [`Vec<i64>`].
         pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
-            let len = take(4usize).parse_next(input).map(BigEndian::read_i32)? as usize;
+            let len = be_i32.parse_next(input)? as usize;
 
             // TODO: zero copy?
             let mut ints = vec![];
