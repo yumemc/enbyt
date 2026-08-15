@@ -1,5 +1,3 @@
-use byteorder::BigEndian;
-use byteorder::ByteOrder;
 use enbyt::binary::serialize::write_string;
 use hegel::TestCase;
 use hegel::generators as gs;
@@ -12,7 +10,7 @@ fn test_write_string_length(tc: TestCase) {
     write_string(&mut buf, str.clone()).unwrap();
 
     let len_bytes = &buf[..2];
-    let len = BigEndian::read_u16(len_bytes) as usize;
+    let len = u16::from_be_bytes(len_bytes.try_into().unwrap()) as usize;
 
     assert_eq!(len, str.len());
 }
