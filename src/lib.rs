@@ -313,7 +313,7 @@ pub mod binary {
         pub fn write_tag(buf: &mut [u8], tag: Tag) -> Result<usize, NBTError> {
             let tag_type_id = tag.type_id();
 
-            buf[0] = tag_type_id as u8;
+            buf[0] = tag_type_id;
 
             let name_written = match tag.name {
                 Some(name) => write_string(&mut buf[1..], name)?,
