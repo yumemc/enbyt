@@ -80,9 +80,7 @@ fn test_parse_float_payload(tc: TestCase) {
 
     let parsed = parse_float_payload(&mut &buf[..]);
 
-    if let Ok(parsed_val) = parsed {
-        assert!(num.total_cmp(&parsed_val).is_eq());
-    }
+    assert_eq!(parsed, Ok(num));
 }
 
 #[hegel::test]
