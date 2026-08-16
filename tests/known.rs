@@ -6,7 +6,7 @@ use enbyt::{
     },
 };
 
-use std::assert_matches;
+use std::{assert_matches, collections::HashMap};
 
 #[test]
 fn test_empty_tag() {
@@ -74,6 +74,20 @@ fn test_empty_string_tag() {
     write_tag(&mut buf, tag.clone()).unwrap();
 
     assert_eq!(buf, vec![0x08, 0x00, 0x00, 0x00, 0x00]);
+
+    let parsed = parse_tag(&mut &buf[..]);
+
+    assert_eq!(parsed, Ok(tag));
+}
+
+#[test]
+fn test_empty_compound_tag() {
+    let mut buf = Vec::new();
+
+    let tag = Tag::new(Some("".to_string()), TagPayload::Compound(HashMap::new())).unwrap();
+    write_tag(&mut buf, tag.clone()).unwrap();
+
+    assert_eq!(buf, vec![0x0a, 0x00, 0x00, 0x00]);
 
     let parsed = parse_tag(&mut &buf[..]);
 
