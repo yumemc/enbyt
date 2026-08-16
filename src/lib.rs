@@ -292,6 +292,8 @@ pub mod binary {
                 written += write_tag(w, item)?;
             }
 
+            written += write_empty_payload(w)?;
+
             Ok(written)
         }
 
