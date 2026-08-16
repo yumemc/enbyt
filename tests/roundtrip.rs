@@ -12,7 +12,7 @@ mod shared;
 fn test_parse_string(tc: TestCase) {
     let str = tc.draw(gs::text());
 
-    let mut buf = vec![0; 2 + str.len()];
+    let mut buf = Vec::new();
     write_string(&mut buf, str.clone()).unwrap();
 
     assert_eq!(parse_string(&mut &buf[..]), Ok(str));
@@ -22,7 +22,7 @@ fn test_parse_string(tc: TestCase) {
 fn test_parse_byte_payload(tc: TestCase) {
     let byte = tc.draw(gs::integers::<i8>());
 
-    let mut buf = vec![0; 1];
+    let mut buf = Vec::new();
 
     write_byte_payload(&mut buf, byte).unwrap();
 
@@ -35,7 +35,7 @@ fn test_parse_byte_payload(tc: TestCase) {
 fn test_parse_short_payload(tc: TestCase) {
     let num = tc.draw(gs::integers::<i16>());
 
-    let mut buf = vec![0; 2];
+    let mut buf = Vec::new();
 
     write_short_payload(&mut buf, num).unwrap();
 
@@ -48,7 +48,7 @@ fn test_parse_short_payload(tc: TestCase) {
 fn test_parse_int_payload(tc: TestCase) {
     let num = tc.draw(gs::integers::<i32>());
 
-    let mut buf = vec![0; 4];
+    let mut buf = Vec::new();
 
     write_int_payload(&mut buf, num).unwrap();
 
@@ -61,7 +61,7 @@ fn test_parse_int_payload(tc: TestCase) {
 fn test_parse_long_payload(tc: TestCase) {
     let num = tc.draw(gs::integers::<i64>());
 
-    let mut buf = vec![0; 8];
+    let mut buf = Vec::new();
 
     write_long_payload(&mut buf, num).unwrap();
 
@@ -74,7 +74,7 @@ fn test_parse_long_payload(tc: TestCase) {
 fn test_parse_float_payload(tc: TestCase) {
     let num = tc.draw(gs::floats::<f32>());
 
-    let mut buf = vec![0; 4];
+    let mut buf = Vec::new();
 
     write_float_payload(&mut buf, num).unwrap();
 
@@ -89,7 +89,7 @@ fn test_parse_float_payload(tc: TestCase) {
 fn test_parse_double_payload(tc: TestCase) {
     let num = tc.draw(gs::floats::<f64>());
 
-    let mut buf = vec![0; 8];
+    let mut buf = Vec::new();
 
     write_double_payload(&mut buf, num).unwrap();
 
@@ -104,7 +104,7 @@ fn test_parse_double_payload(tc: TestCase) {
 fn test_parse_byte_array_payload(tc: TestCase) {
     let arr = tc.draw(gs::vecs(gs::integers::<u8>()));
 
-    let mut buf = vec![0; 4 + arr.len()];
+    let mut buf = Vec::new();
 
     write_byte_array_payload(&mut buf, &arr).unwrap();
 
@@ -118,7 +118,7 @@ fn test_parse_tag(tc: TestCase) {
     let tag = tc.draw(generate_tag());
 
     // generously sized buffer because we really don't know how big the data from hegel is gonna be
-    let mut buf = vec![0; 256];
+    let mut buf = Vec::new();
 
     write_tag(&mut buf, tag.clone()).unwrap();
 
