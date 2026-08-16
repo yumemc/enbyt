@@ -13,6 +13,9 @@ pub enum NBTError {
     #[error("item does not match expected payload type: {0:?}")]
     UnexpectedType(u8, Tag),
 
+    #[error("not all entries have the same key as their value's name")]
+    InconsistentCompound,
+
     #[error("io error: {0:?}")]
     IO(#[from] io::Error),
 }
@@ -25,16 +28,14 @@ pub struct Tag {
 
 impl Tag {
     pub fn new(name: Option<String>, payload: TagPayload) -> Result<Self, NBTError> {
-        match (name, payload) {
-            (name, TagPayload::Empty) => match name {
-                Some(name) => Err(NBTError::InvalidTagName(Some(name))),
-                None => Ok(Self {
-                    name: None,
-                    payload: TagPayload::Empty,
-                }),
-            },
+        match (&name, &payload) {
+            (Some(_), TagPayload::Empty) => Err(NBTError::InvalidTagName(name)),
+            (None, TagPayload::Empty) => Ok(Self { name, payload }),
             (None, _) => Err(NBTError::InvalidTagName(None)),
-            (name, payload) => Ok(Self { name, payload }),
+            (_, TagPayload::Compound(_)) if !payload.is_consistent().unwrap() => {
+                Err(NBTError::InconsistentCompound)
+            }
+            _ => Ok(Self { name, payload }),
         }
     }
 
@@ -88,6 +89,22 @@ impl TagPayload {
             crate::TagPayload::Compound(_) => 0x0a,
             crate::TagPayload::IntArray(_) => 0x0b,
             crate::TagPayload::LongArray(_) => 0x0c,
+        }
+    }
+
+    /// Checks if the [`HashMap`]'s keys are the same as the tag names.
+    ///
+    /// This works only for [`TagPayload::Compound`] payloads
+    pub fn is_consistent(&self) -> Option<bool> {
+        match self {
+            TagPayload::Compound(map) => Some(!map.iter().any(|entry| {
+                // returning true here means that this is *inconsistent*
+                match &entry.1.name {
+                    Some(name) => entry.0 != name,
+                    None => true,
+                }
+            })),
+            _ => None,
         }
     }
 }
