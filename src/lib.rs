@@ -41,6 +41,7 @@ impl Tag {
     /// Returns the ID (as per the spec) of the payload's type.
     ///
     /// Calls [`TagPayload::type_id`].
+    #[must_use]
     pub fn type_id(&self) -> u8 {
         self.payload.type_id()
     }
@@ -71,6 +72,7 @@ pub enum TagPayload {
 
 impl TagPayload {
     /// Returns the ID (as per the spec) of the payload's type.
+    #[must_use]
     pub fn type_id(&self) -> u8 {
         match self {
             crate::TagPayload::Empty => 0x00,
@@ -559,7 +561,7 @@ pub mod binary {
             let make_tag = |(name, payload)| Tag::new(name, payload);
 
             dispatch! { any;
-                0x0 => empty.try_map(|_| Tag::new(None, TagPayload::Empty)),
+                0x0 => empty.try_map(|()| Tag::new(None, TagPayload::Empty)),
                 0x01 => seq!((tag_name(), parse_byte_payload.map(TagPayload::Byte))).try_map(make_tag),
                 0x02 => seq!((tag_name(), parse_short_payload.map(TagPayload::Short))).try_map(make_tag),
                 0x03 => seq!((tag_name(), parse_int_payload.map(TagPayload::Int))).try_map(make_tag),

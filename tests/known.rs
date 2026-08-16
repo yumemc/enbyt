@@ -1,8 +1,8 @@
 use enbyt::{
     Tag, TagPayload,
     binary::{
-        deserialize::{parse_string_payload, parse_tag},
-        serialize::{write_byte_payload, write_string_payload, write_tag},
+        deserialize::parse_tag,
+        serialize::{write_byte_payload, write_tag},
     },
 };
 
@@ -70,7 +70,7 @@ fn test_byte_payload_length() {
 fn test_empty_string_tag() {
     let mut buf = Vec::new();
 
-    let tag = Tag::new(Some("".to_string()), TagPayload::String("".to_string())).unwrap();
+    let tag = Tag::new(Some(String::new()), TagPayload::String(String::new())).unwrap();
     write_tag(&mut buf, tag.clone()).unwrap();
 
     assert_eq!(buf, vec![0x08, 0x00, 0x00, 0x00, 0x00]);
@@ -84,7 +84,7 @@ fn test_empty_string_tag() {
 fn test_empty_compound_tag() {
     let mut buf = Vec::new();
 
-    let tag = Tag::new(Some("".to_string()), TagPayload::Compound(HashMap::new())).unwrap();
+    let tag = Tag::new(Some(String::new()), TagPayload::Compound(HashMap::new())).unwrap();
     write_tag(&mut buf, tag.clone()).unwrap();
 
     assert_eq!(buf, vec![0x0a, 0x00, 0x00, 0x00]);
