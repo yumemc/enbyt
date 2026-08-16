@@ -20,7 +20,7 @@ fn test_empty_tag() {
 
 #[test]
 fn test_heterogenous_list() {
-    let mut buf = vec![0; 12];
+    let mut buf = Vec::new();
 
     let list = Tag::new(
         Some("list".to_string()),
@@ -42,7 +42,7 @@ fn test_heterogenous_list() {
 
 #[test]
 fn test_homogenous_list() {
-    let mut buf = vec![0; 12];
+    let mut buf = Vec::new();
 
     let list = Tag::new(
         Some("list".to_string()),
@@ -61,7 +61,7 @@ fn test_homogenous_list() {
 
 #[test]
 fn test_byte_payload_length() {
-    let mut buf = vec![0; 2];
+    let mut buf = Vec::new();
 
     assert_matches!(write_byte_payload(&mut buf, 3), Ok(1));
 }
