@@ -6,7 +6,7 @@ use hegel::generators as gs;
 fn test_write_string_length(tc: TestCase) {
     let str = tc.draw(gs::text());
 
-    let mut buf = vec![0; 2 + str.len()];
+    let mut buf = Vec::new();
     write_string(&mut buf, str.clone()).unwrap();
 
     let len_bytes = &buf[..2];
@@ -19,7 +19,7 @@ fn test_write_string_length(tc: TestCase) {
 fn test_write_string_value(tc: TestCase) {
     let str = tc.draw(gs::text());
 
-    let mut buf = vec![0; 2 + str.len()];
+    let mut buf = Vec::new();
     write_string(&mut buf, str.clone()).unwrap();
 
     let str_bytes = &buf[2..];
