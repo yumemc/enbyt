@@ -1,0 +1,17 @@
+# Lefthook config — https://github.com/evilmartians/lefthook
+# Install: lefthook install
+
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      run: cargo fmt --all
+    clippy:
+      run: cargo clippy -- -D warnings
+    test:
+      run: cargo test
+
+pre-push:
+  commands:
+    test:
+      run: cargo test
