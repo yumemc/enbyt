@@ -46,7 +46,7 @@ impl Tag {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum TagPayload {
     Empty,
 
@@ -86,6 +86,29 @@ impl TagPayload {
             crate::TagPayload::Compound(_) => 0x0a,
             crate::TagPayload::IntArray(_) => 0x0b,
             crate::TagPayload::LongArray(_) => 0x0c,
+        }
+    }
+}
+
+impl PartialEq for TagPayload {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Empty, Self::Empty) => true,
+            (Self::Byte(left), Self::Byte(right)) => left == right,
+            (Self::Short(left), Self::Short(right)) => left == right,
+            (Self::Int(left), Self::Int(right)) => left == right,
+            (Self::Long(left), Self::Long(right)) => left == right,
+            (Self::Float(left), Self::Float(right)) => left.to_bits() == right.to_bits(),
+            (Self::Double(left), Self::Double(right)) => left.to_bits() == right.to_bits(),
+            (Self::String(left), Self::String(right)) => left == right,
+            (Self::List(left1, left2), Self::List(right1, right2)) => {
+                left1 == right1 && left2 == right2
+            }
+            (Self::Compound(left), Self::Compound(right)) => left == right,
+            (Self::ByteArray(left), Self::ByteArray(right)) => left == right,
+            (Self::IntArray(left), Self::IntArray(right)) => left == right,
+            (Self::LongArray(left), Self::LongArray(right)) => left == right,
+            _ => false,
         }
     }
 }
