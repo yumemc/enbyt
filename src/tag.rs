@@ -102,12 +102,12 @@ pub enum TagPayload {
     /// A list payload, containing several [`Tag`]s.
     ///
     /// Tuple containing:
-    /// - [`i8`] denoting the Type ID of the tags inside the list.
-    /// - [`Vec<Tag>`] containing the items.
+    /// - [`TagPayloadType`] denoting the Type of the tags inside the list.
+    /// - [`Vec<Tag>`] containing the tags.
     ///
     /// All items inside the [`Vec<Tag>`] must have a consistent type, and be of the type denoted by
     /// the first member of the tuple.
-    List(i8, Vec<Tag>) = 0x09,
+    List(TagPayloadType, Vec<Tag>) = 0x09,
 
     /// A collection payload containing [`Tag`]s indexed by their name.
     ///

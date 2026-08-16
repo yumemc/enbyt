@@ -1,8 +1,10 @@
 use enbyt::Tag;
 use enbyt::TagPayload;
+use hegel::Generator;
 use hegel::TestCase;
 use hegel::generators as gs;
 
+/// This generator should model every possible, (but not necessarily semantically correct) payload.
 #[hegel::composite]
 pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
     let id = tc.draw(gs::integers::<u8>().min_value(0).max_value(12));
@@ -18,7 +20,11 @@ pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
         0x07 => TagPayload::ByteArray(tc.draw(gs::vecs(gs::integers::<i8>()))),
         0x08 => TagPayload::String(tc.draw(gs::text())),
         0x09 => TagPayload::List(
-            tc.draw(gs::integers::<i8>()),
+            tc.draw(
+                gs::integers::<u8>()
+                    .filter(|x| (0..0xc).contains(x))
+                    .map(|x| x.try_into().unwrap()),
+            ),
             tc.draw(gs::vecs(generate_tag())),
         ),
         0x0a => TagPayload::Compound(tc.draw(gs::hashmaps(gs::text(), generate_tag()))),

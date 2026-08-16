@@ -1,5 +1,5 @@
 use enbyt::{
-    Tag, TagPayload,
+    Tag, TagPayload, TagPayloadType,
     binary::{
         deserialize::parse_tag,
         serialize::{write_byte_payload, write_tag},
@@ -25,7 +25,7 @@ fn test_heterogenous_list() {
     let list = Tag::new(
         Some("list".to_string()),
         TagPayload::List(
-            0x03,
+            TagPayloadType::Int,
             vec![
                 Tag::new(Some("a".to_string()), TagPayload::String("aa".to_string())).unwrap(),
                 Tag::new(Some("b".to_string()), TagPayload::Byte(4)).unwrap(),
@@ -47,7 +47,7 @@ fn test_homogenous_list() {
     let list = Tag::new(
         Some("list".to_string()),
         TagPayload::List(
-            0x03,
+            TagPayloadType::Int,
             vec![
                 Tag::new(Some("a".to_string()), TagPayload::Int(3)).unwrap(),
                 Tag::new(Some("b".to_string()), TagPayload::Int(4)).unwrap(),

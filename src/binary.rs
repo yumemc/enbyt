@@ -2,7 +2,7 @@ pub mod serialize {
 
     use std::io::Write;
 
-    use crate::{NBTError, Tag, TagPayload};
+    use crate::{NBTError, Tag, TagPayload, TagPayloadType};
 
     /// Writes a string `str` into `w`.
     ///
@@ -133,11 +133,11 @@ pub mod serialize {
     /// - every tag
     pub fn write_list_payload<W: Write>(
         w: &mut W,
-        (type_id, list): (i8, Vec<Tag>),
+        (tag_type, list): (TagPayloadType, Vec<Tag>),
     ) -> Result<usize, NBTError> {
         let mut written = 0;
 
-        let type_id = type_id as u8;
+        let type_id = tag_type as u8;
 
         // ensure all items are of the same type
         let first_different = list.iter().find(|tag| tag.type_id() != type_id);
@@ -249,7 +249,7 @@ pub mod serialize {
             TagPayload::Float(value) => write_float_payload(w, value),
             TagPayload::Double(value) => write_double_payload(w, value),
             TagPayload::String(value) => write_string_payload(w, value),
-            TagPayload::List(type_id, value) => write_list_payload(w, (type_id, value)),
+            TagPayload::List(tag_type, value) => write_list_payload(w, (tag_type, value)),
             TagPayload::Compound(value) => write_compound_payload(w, value.into_values().collect()),
             TagPayload::ByteArray(value) => write_byte_array_payload(w, value),
             TagPayload::IntArray(items) => write_int_array_payload(w, items),
@@ -272,7 +272,7 @@ pub mod deserialize {
         token::{any, take},
     };
 
-    use crate::{Tag, TagPayload};
+    use crate::{Tag, TagPayload, TagPayloadType};
 
     /// Parses a string from a byte slice `input` into a [`String`].
     pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
@@ -356,8 +356,12 @@ pub mod deserialize {
 
     /// Parses an NBT array tag's payload from a byte slice `input` into a [`(i8, Vec<Tag>)`]
     /// containing the size and the tag array.
-    pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(i8, Vec<Tag>)> {
+    pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec<Tag>)> {
         let tag_type_id = any.parse_next(input)? as i8;
+        let tag_type: TagPayloadType = (tag_type_id as u8)
+            .try_into()
+            .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?;
+
         let size = be_i32.parse_next(input)? as usize;
 
         let tags = repeat(size, parse_tag).parse_next(input)?;
@@ -366,7 +370,7 @@ pub mod deserialize {
         // error if they are not? This would risk losing corrupt data with the user unable to do
         // anything about it. Perhaps some sort of `strict` option.
 
-        Ok((tag_type_id, tags))
+        Ok((tag_type, tags))
     }
 
     /// Parses an NBT compound tag's payload from a byte slice `input` into a [`HashMap<String, Tag>`].
