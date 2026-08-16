@@ -1,6 +1,9 @@
 use enbyt::{
     Tag, TagPayload,
-    binary::{deserialize::parse_tag, serialize::write_tag},
+    binary::{
+        deserialize::parse_tag,
+        serialize::{write_byte_payload, write_tag},
+    },
 };
 
 use std::assert_matches;
@@ -54,4 +57,11 @@ fn test_homogenous_list() {
     .unwrap();
 
     assert!(write_tag(&mut buf, list).is_ok());
+}
+
+#[test]
+fn test_byte_payload_length() {
+    let mut buf = vec![0; 2];
+
+    assert_matches!(write_byte_payload(&mut buf, 3), Ok(1));
 }
