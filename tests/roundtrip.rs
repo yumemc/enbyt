@@ -100,11 +100,11 @@ fn test_parse_double_payload(tc: TestCase) {
 
 #[hegel::test]
 fn test_parse_byte_array_payload(tc: TestCase) {
-    let arr = tc.draw(gs::vecs(gs::integers::<u8>()));
+    let arr = tc.draw(gs::vecs(gs::integers::<i8>()));
 
     let mut buf = Vec::new();
 
-    write_byte_array_payload(&mut buf, &arr).unwrap();
+    write_byte_array_payload(&mut buf, arr.clone()).unwrap();
 
     let parsed = parse_byte_array_payload(&mut &buf[..]);
 

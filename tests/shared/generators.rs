@@ -15,7 +15,7 @@ pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
         0x04 => TagPayload::Long(tc.draw(gs::integers::<i64>())),
         0x05 => TagPayload::Float(tc.draw(gs::floats::<f32>())),
         0x06 => TagPayload::Double(tc.draw(gs::floats::<f64>())),
-        0x07 => TagPayload::ByteArray(tc.draw(gs::vecs(gs::integers::<u8>()))),
+        0x07 => TagPayload::ByteArray(tc.draw(gs::vecs(gs::integers::<i8>()))),
         0x08 => TagPayload::String(tc.draw(gs::text())),
         0x09 => TagPayload::List(
             tc.draw(gs::integers::<i8>()),

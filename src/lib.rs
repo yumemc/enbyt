@@ -120,8 +120,8 @@ pub enum TagPayload {
     /// the [`Tag::name`] of the [`Tag`].
     Compound(HashMap<String, Tag>),
 
-    /// A list payload containing several unsigned 2-byte numbers.
-    ByteArray(Vec<u8>),
+    /// A list payload containing several signed 2-byte numbers.
+    ByteArray(Vec<i8>),
 
     /// A list payload containing several signed 4-byte numbers.
     IntArray(Vec<i32>),
@@ -297,14 +297,17 @@ pub mod binary {
         /// - the literal byte array.
         pub fn write_byte_array_payload<W: Write>(
             w: &mut W,
-            arr: &[u8],
+            arr: Vec<i8>,
         ) -> Result<usize, NBTError> {
             let mut written = 0;
 
             let length = arr.len() as i32;
 
             written += w.write(&length.to_be_bytes())?;
-            written += w.write(arr)?;
+
+            for item in arr {
+                written += write_byte_payload(w, item)?;
+            }
 
             Ok(written)
         }
@@ -457,7 +460,7 @@ pub mod binary {
                 TagPayload::Compound(value) => {
                     write_compound_payload(w, value.into_values().collect())
                 }
-                TagPayload::ByteArray(value) => write_byte_array_payload(w, &value),
+                TagPayload::ByteArray(value) => write_byte_array_payload(w, value),
                 TagPayload::IntArray(items) => write_int_array_payload(w, items),
                 TagPayload::LongArray(items) => write_long_array_payload(w, items),
             }?;
@@ -540,13 +543,17 @@ pub mod binary {
         }
 
         /// Parses a NBT byte array tag's payload from a byte slice `input` into a [`Vec<u8>`].
-        pub fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<u8>> {
+        pub fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i8>> {
             let len = be_i32.parse_next(input)? as usize;
 
-            // TODO: zero copy?
-            let bytes = take(len).parse_next(input)?;
+            let mut bytes = vec![];
 
-            Ok(bytes.into())
+            // TODO: make this not imperative
+            for _ in 0..len {
+                bytes.push(parse_byte_payload(input)?);
+            }
+
+            Ok(bytes)
         }
 
         /// Parses an NBT string tag's payload from a byte slice `input` into a [`String`].
