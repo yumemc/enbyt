@@ -1,6 +1,6 @@
-/// enbyt: a Rust NBT library
-///
-/// NBT Format Reference: <https://minecraft.wiki/w/NBT_format>
+//! A library for Serializing/Deserializing NBT data.
+//!
+//! NBT Format Reference: <https://minecraft.wiki/w/NBT_format>
 use std::{collections::HashMap, io};
 
 use thiserror::Error;
@@ -20,18 +20,47 @@ pub enum NBTError {
     IO(#[from] io::Error),
 }
 
+/// A container data structure holding some data.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
+    /// The name of the payload. This can be [`None`] in the case of [`TagPayload::Empty`] payloads.
     pub name: Option<String>,
+
+    /// The data of the tag.
     pub payload: TagPayload,
 }
 
 impl Tag {
+    /// Creates a new [`Tag`], given an optional name and a [`TagPayload`], ensuring the given data is
+    /// valid.
+    ///
+    /// # Errors
+    ///
+    /// This function may not succeed under the following cases:
+    /// - a `name` is given to a [`TagPayload::Empty`] tag
+    /// - no `name` is given to a non- [`TagPayload::Empty`] tag
+    /// - an inconsistent [`TagPayload::Compound`] is given (i.e. a compound payload where the keys
+    ///   of the entries don't match the names of the tags)
+    ///
+    /// # Examples
+    /// ```
+    /// use enbyt::{Tag, TagPayload};
+    ///
+    /// let thirty = Tag::new(
+    ///     Some(String::from("thirty")),
+    ///     TagPayload::Int(30)
+    /// ).expect("couldn't create tag");
+    /// ```
     pub fn new(name: Option<String>, payload: TagPayload) -> Result<Self, NBTError> {
         match (&name, &payload) {
+            // reject names for Empty tags
             (Some(_), TagPayload::Empty) => Err(NBTError::InvalidTagName(name)),
             (None, TagPayload::Empty) => Ok(Self { name, payload }),
+
+            // reject nameless non-Empty tags
             (None, _) => Err(NBTError::InvalidTagName(None)),
+
+            // reject inconsistent Compount tags
             (_, TagPayload::Compound(_)) if !payload.is_consistent().unwrap() => {
                 Err(NBTError::InconsistentCompound)
             }
@@ -48,26 +77,56 @@ impl Tag {
     }
 }
 
+/// The data held by a [`Tag`] container.
 #[derive(Debug, Clone)]
 pub enum TagPayload {
+    /// A zero-byte payload, typically used to indicate the end of a [`TagPayload::Compound`].
     Empty,
 
+    /// A signed 1-byte numeric payload.
     Byte(i8),
+
+    /// A signed 2-byte numeric payload.
     Short(i16),
+
+    /// A signed 4-byte numeric payload.
     Int(i32),
+
+    /// A signed 8-byte numeric payload.
     Long(i64),
+
+    /// A 4-byte floating point numeric payload.
     Float(f32),
+
+    /// A 8-byte floating point numeric payload.
     Double(f64),
+
+    /// A textual payload.
     String(String),
 
-    // NOTE: Should be homogenous
+    /// A list payload, containing several [`Tag`]s.
+    ///
+    /// Tuple containing:
+    /// - [`i8`] denoting the Type ID of the tags inside the list.
+    /// - [`Vec<Tag>`] containing the items.
+    ///
+    /// All items inside the [`Vec<Tag>`] must have a consistent type, and be of the type denoted by
+    /// the first member of the tuple.
     List(i8, Vec<Tag>),
 
-    // NOTE: Must hold that key == value.name
+    /// A collection payload containing [`Tag`]s indexed by their name.
+    ///
+    /// All elements of the [`HashMap<String, Tag>`] must be consistent, i.e. their keys must match
+    /// the [`Tag::name`] of the [`Tag`].
     Compound(HashMap<String, Tag>),
 
+    /// A list payload containing several unsigned 2-byte numbers.
     ByteArray(Vec<u8>),
+
+    /// A list payload containing several signed 4-byte numbers.
     IntArray(Vec<i32>),
+
+    /// A list payload containing several signed 8-byte numbers.
     LongArray(Vec<i64>),
 }
 
