@@ -148,6 +148,13 @@ pub mod binary {
             write_string(w, name)
         }
 
+        /// Writes a empty NBT tag into a buffer `buf`.
+        ///
+        /// Returns the amount of bytes written.
+        pub fn write_empty_payload<W: Write>(w: &mut W) -> Result<usize, NBTError> {
+            Ok(w.write(&[0x00])?)
+        }
+
         /// Writes a a signed 1 byte number `byte` into a buffer `buf`.
         ///
         /// Returns the amount of bytes written.
