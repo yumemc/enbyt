@@ -140,12 +140,13 @@ pub mod binary {
 
         use crate::{NBTError, Tag, TagPayload};
 
-        /// Writes a string `str` into a buffer `buf`.
+        /// Writes a string `str` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
-        /// The format is: 2 byte integer (Big Endian) indicating the string's length, and the
-        /// string's bytes encoded using UTF-8.
+        /// The format is:
+        /// - 2 byte integer (Big Endian) indicating the string's length
+        /// - the string's bytes encoded using UTF-8.
         pub fn write_string<W: Write>(w: &mut W, str: String) -> Result<usize, NBTError> {
             let length = str.len() as u16;
             let string_bytes = str.as_bytes();
@@ -158,7 +159,7 @@ pub mod binary {
             Ok(written)
         }
 
-        /// Writes a tag name `name` into a buffer `buf`.
+        /// Writes a tag name `name` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -167,14 +168,14 @@ pub mod binary {
             write_string(w, name)
         }
 
-        /// Writes a empty NBT tag into a buffer `buf`.
+        /// Writes a empty NBT tag into `w`.
         ///
         /// Returns the amount of bytes written.
         pub fn write_empty_payload<W: Write>(w: &mut W) -> Result<usize, NBTError> {
             Ok(w.write(&[0x00])?)
         }
 
-        /// Writes a a signed 1 byte number `byte` into a buffer `buf`.
+        /// Writes a a signed 1 byte number `byte` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -183,7 +184,7 @@ pub mod binary {
             Ok(w.write(&[byte as u8])?)
         }
 
-        /// Writes a a signed 2 byte number `value` into a buffer `buf`.
+        /// Writes a a signed 2 byte number `value` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -192,7 +193,7 @@ pub mod binary {
             Ok(w.write(&value.to_be_bytes())?)
         }
 
-        /// Writes a a signed 4 byte number `value` into a buffer `buf`.
+        /// Writes a a signed 4 byte number `value` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -201,7 +202,7 @@ pub mod binary {
             Ok(w.write(&value.to_be_bytes())?)
         }
 
-        /// Writes a a signed 8 byte number `value` into a buffer `buf`.
+        /// Writes a a signed 8 byte number `value` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -210,7 +211,7 @@ pub mod binary {
             Ok(w.write(&value.to_be_bytes())?)
         }
 
-        /// Writes a a signed 4 byte float number `value` into a buffer `buf`.
+        /// Writes a a signed 4 byte float number `value` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -219,7 +220,7 @@ pub mod binary {
             Ok(w.write(&value.to_be_bytes())?)
         }
 
-        /// Writes a a signed 8 byte float number `value` into a buffer `buf`.
+        /// Writes a a signed 8 byte float number `value` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -228,12 +229,13 @@ pub mod binary {
             Ok(w.write(&value.to_be_bytes())?)
         }
 
-        /// Writes a NBT byte array `arr` into a buffer `buf`.
+        /// Writes a NBT byte array `arr` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
-        /// The format is: 4 bytes for the size of the array (Big Endian-encoded) then the literal
-        /// byte array.
+        /// The format is:
+        /// - 4 bytes for the size of the array (Big Endian-encoded)
+        /// - the literal byte array.
         pub fn write_byte_array_payload<W: Write>(
             w: &mut W,
             arr: &[u8],
@@ -248,7 +250,7 @@ pub mod binary {
             Ok(written)
         }
 
-        /// Writes a NBT string payload `str` into a buffer `buf`.
+        /// Writes a NBT string payload `str` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -257,15 +259,14 @@ pub mod binary {
             write_string(w, str)
         }
 
-        /// Writes a NBT list payload `list` into a buffer `buf`.
+        /// Writes a NBT list payload `list` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
         /// The format is:
-        ///
-        ///     - 1 byte for the ID of the type of the list's contents
-        ///     - 4 bytes for the length
-        ///     - every tag
+        /// - 1 byte for the ID of the type of the list's contents
+        /// - 4 bytes for the length
+        /// - every tag
         pub fn write_list_payload<W: Write>(
             w: &mut W,
             (type_id, list): (i8, Vec<Tag>),
@@ -293,14 +294,13 @@ pub mod binary {
             Ok(written)
         }
 
-        /// Writes a NBT compound payload `value` into a buffer `buf`.
+        /// Writes a NBT compound payload `value` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
         /// The format is:
-        ///
-        ///     - every payload inside the list (the value of this payload)
-        ///     - 0x00, which is an empty NBT tag
+        /// - every payload inside the list (the value of this payload)
+        /// - 0x00, which is an empty NBT tag
         pub fn write_compound_payload<W: Write>(
             w: &mut W,
             value: Vec<Tag>,
@@ -316,7 +316,7 @@ pub mod binary {
             Ok(written)
         }
 
-        /// Writes a NBT int array `arr` into a buffer `buf`.
+        /// Writes a NBT int array `arr` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -340,7 +340,7 @@ pub mod binary {
             Ok(written)
         }
 
-        /// Writes a NBT long array `arr` into a buffer `buf`.
+        /// Writes a NBT long array `arr` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
@@ -364,18 +364,15 @@ pub mod binary {
             Ok(written)
         }
 
-        /// Writes a NBT tag `tag` into a buffer `buf`.
+        /// Writes a NBT tag `tag` into `w`.
         ///
         /// Returns the amount of bytes written.
         ///
         /// The format is:
-        ///     - 1 byte for the tag type's ID
-        ///
-        ///     (see [`write_string`])
-        ///     - 2 bytes for the length of the name
-        ///     - n bytes for the name's UTF-8 encoded
-        ///
-        ///     - the tag's payload
+        /// - 1 byte for the tag type's ID
+        /// - 2 bytes for the length of the name (see [`write_string`])
+        /// - n bytes for the name's UTF-8 encoded
+        /// - the tag's payload
         pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
             let mut written = 0;
 
