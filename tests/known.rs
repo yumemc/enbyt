@@ -1,8 +1,8 @@
 use enbyt::{
     Tag, TagPayload,
     binary::{
-        deserialize::parse_tag,
-        serialize::{write_byte_payload, write_tag},
+        deserialize::{parse_string_payload, parse_tag},
+        serialize::{write_byte_payload, write_string_payload, write_tag},
     },
 };
 
@@ -64,4 +64,18 @@ fn test_byte_payload_length() {
     let mut buf = Vec::new();
 
     assert_matches!(write_byte_payload(&mut buf, 3), Ok(1));
+}
+
+#[test]
+fn test_empty_string_tag() {
+    let mut buf = Vec::new();
+
+    let tag = Tag::new(Some("".to_string()), TagPayload::String("".to_string())).unwrap();
+    write_tag(&mut buf, tag.clone()).unwrap();
+
+    assert_eq!(buf, vec![0x08, 0x00, 0x00, 0x00, 0x00]);
+
+    let parsed = parse_tag(&mut &buf[..]);
+
+    assert_eq!(parsed, Ok(tag));
 }
