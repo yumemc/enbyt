@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use strum::{EnumDiscriminants, FromRepr};
+
 use crate::error::NBTError;
 
 /// A container data structure holding some data.
@@ -50,6 +52,12 @@ impl Tag {
         }
     }
 
+    /// Returns the [`TagPayloadType`] of the payload.
+    #[must_use]
+    pub fn payload_type(&self) -> TagPayloadType {
+        self.payload.payload_type()
+    }
+
     /// Returns the ID (as per the spec) of the payload's type.
     ///
     /// Calls [`TagPayload::type_id`].
@@ -60,31 +68,36 @@ impl Tag {
 }
 
 /// The data held by a [`Tag`] container.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, EnumDiscriminants)]
+#[strum_discriminants(name(TagPayloadType), derive(FromRepr, Hash), vis(pub))]
+#[repr(u8)]
 pub enum TagPayload {
     /// A zero-byte payload, typically used to indicate the end of a [`TagPayload::Compound`].
-    Empty,
+    Empty = 0x00,
 
     /// A signed 1-byte numeric payload.
-    Byte(i8),
+    Byte(i8) = 0x01,
 
     /// A signed 2-byte numeric payload.
-    Short(i16),
+    Short(i16) = 0x02,
 
     /// A signed 4-byte numeric payload.
-    Int(i32),
+    Int(i32) = 0x03,
 
     /// A signed 8-byte numeric payload.
-    Long(i64),
+    Long(i64) = 0x04,
 
     /// A 4-byte floating point numeric payload.
-    Float(f32),
+    Float(f32) = 0x05,
 
     /// A 8-byte floating point numeric payload.
-    Double(f64),
+    Double(f64) = 0x06,
+
+    /// A list payload containing several signed 2-byte numbers.
+    ByteArray(Vec<i8>) = 0x07,
 
     /// A textual payload.
-    String(String),
+    String(String) = 0x08,
 
     /// A list payload, containing several [`Tag`]s.
     ///
@@ -94,43 +107,46 @@ pub enum TagPayload {
     ///
     /// All items inside the [`Vec<Tag>`] must have a consistent type, and be of the type denoted by
     /// the first member of the tuple.
-    List(i8, Vec<Tag>),
+    List(i8, Vec<Tag>) = 0x09,
 
     /// A collection payload containing [`Tag`]s indexed by their name.
     ///
     /// All elements of the [`HashMap<String, Tag>`] must be consistent, i.e. their keys must match
     /// the [`Tag::name`] of the [`Tag`].
-    Compound(HashMap<String, Tag>),
-
-    /// A list payload containing several signed 2-byte numbers.
-    ByteArray(Vec<i8>),
+    Compound(HashMap<String, Tag>) = 0x0a,
 
     /// A list payload containing several signed 4-byte numbers.
-    IntArray(Vec<i32>),
+    IntArray(Vec<i32>) = 0x0b,
 
     /// A list payload containing several signed 8-byte numbers.
-    LongArray(Vec<i64>),
+    LongArray(Vec<i64>) = 0x0c,
+}
+
+impl TagPayloadType {
+    pub const fn id(self) -> u8 {
+        self as u8
+    }
+}
+
+impl TryFrom<u8> for TagPayloadType {
+    type Error = NBTError;
+
+    fn try_from(id: u8) -> Result<Self, Self::Error> {
+        Self::from_repr(id).ok_or(NBTError::InvalidPayloadType)
+    }
 }
 
 impl TagPayload {
+    /// Returns the [`TagPayloadType`] of the payload.
+    #[must_use]
+    pub fn payload_type(&self) -> TagPayloadType {
+        self.into()
+    }
+
     /// Returns the ID (as per the spec) of the payload's type.
     #[must_use]
     pub fn type_id(&self) -> u8 {
-        match self {
-            crate::TagPayload::Empty => 0x00,
-            crate::TagPayload::Byte(_) => 0x01,
-            crate::TagPayload::Short(_) => 0x02,
-            crate::TagPayload::Int(_) => 0x03,
-            crate::TagPayload::Long(_) => 0x04,
-            crate::TagPayload::Float(_) => 0x05,
-            crate::TagPayload::Double(_) => 0x06,
-            crate::TagPayload::ByteArray(_) => 0x07,
-            crate::TagPayload::String(_) => 0x08,
-            crate::TagPayload::List(_, _) => 0x09,
-            crate::TagPayload::Compound(_) => 0x0a,
-            crate::TagPayload::IntArray(_) => 0x0b,
-            crate::TagPayload::LongArray(_) => 0x0c,
-        }
+        self.payload_type() as u8
     }
 
     /// Checks if the [`HashMap`]'s keys are the same as the tag names.

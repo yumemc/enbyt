@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 deflate = { version = "1.0.0", features = ["gzip"] }
+strum = { version = "0.26", features = ["derive"] }
 thiserror = "2.0.20"
 winnow = "1.0.4"
 
