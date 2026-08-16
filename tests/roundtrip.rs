@@ -115,7 +115,6 @@ fn test_parse_byte_array_payload(tc: TestCase) {
 fn test_parse_tag(tc: TestCase) {
     let tag = tc.draw(generate_tag());
 
-    // generously sized buffer because we really don't know how big the data from hegel is gonna be
     let mut buf = Vec::new();
 
     write_tag(&mut buf, tag.clone()).unwrap();
