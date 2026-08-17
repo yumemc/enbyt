@@ -7,8 +7,8 @@ use crate::error::NBTError;
 /// A container data structure holding some data.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tag {
-    /// The name of the payload. This can be [`None`] in the case of [`TagPayload::Empty`] payloads.
-    pub name: Option<String>,
+    /// The name of the payload.
+    pub name: String,
 
     /// The data of the tag.
     pub payload: TagPayload,
@@ -21,37 +21,22 @@ impl Tag {
     /// # Errors
     ///
     /// This function may not succeed under the following cases:
-    /// - a `name` is given to a [`TagPayload::Empty`] tag
-    /// - no `name` is given to a non- [`TagPayload::Empty`] tag
     /// - an inconsistent [`TagPayload::Compound`] is given (i.e. a compound payload where the keys
     ///   of the entries don't match the names of the tags)
-    /// - a [`TagPayload::List`] with [`TagPayloadType::Empty`] contains elements
     ///
     /// # Examples
     /// ```
     /// use enbyt::{Tag, TagPayload};
     ///
     /// let thirty = Tag::new(
-    ///     Some("thirty".to_string()), TagPayload::Int(30)
+    ///     "thirty".to_string(), TagPayload::Int(30)
     /// ).expect("couldn't create tag");
     /// ```
-    pub fn new(name: Option<String>, payload: TagPayload) -> Result<Self, NBTError> {
+    pub fn new(name: String, payload: TagPayload) -> Result<Self, NBTError> {
         match (&name, &payload) {
-            // reject names for Empty tags
-            (Some(_), TagPayload::Empty) => Err(NBTError::InvalidTagName(name)),
-            (None, TagPayload::Empty) => Ok(Self { name, payload }),
-
-            // reject nameless non-Empty tags
-            (None, _) => Err(NBTError::InvalidTagName(None)),
-
             // reject inconsistent Compound tags
             (_, TagPayload::Compound(_)) if !payload.is_consistent().unwrap() => {
                 Err(NBTError::InconsistentCompound)
-            }
-
-            // reject empty payload type for non-empty lists
-            (_, TagPayload::List(TagPayloadType::Empty, list)) if !list.is_empty() => {
-                Err(NBTError::InvalidListElementType(TagPayloadType::Empty))
             }
 
             // reject inconsistent List tags
@@ -83,9 +68,6 @@ impl Tag {
 #[strum_discriminants(name(TagPayloadType), derive(FromRepr, Hash), vis(pub))]
 #[repr(u8)]
 pub enum TagPayload {
-    /// A zero-byte payload, typically used to indicate the end of a [`TagPayload::Compound`].
-    Empty = 0x00,
-
     /// A signed 1-byte numeric payload.
     Byte(i8) = 0x01,
 
@@ -173,13 +155,13 @@ impl TagPayload {
     /// use enbyt::{Tag, TagPayload};
     ///
     /// let consistent = TagPayload::Compound([
-    ///     ("a".to_string(), Tag::new(Some("a".to_string()), TagPayload::Byte(0x00)).unwrap()),
-    ///     ("b".to_string(), Tag::new(Some("b".to_string()), TagPayload::Byte(0x03)).unwrap())
+    ///     ("a".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x00)).unwrap()),
+    ///     ("b".to_string(), Tag::new("b".to_string(), TagPayload::Byte(0x03)).unwrap())
     /// ].into());
     ///
     /// let inconsistent = TagPayload::Compound([
-    ///     ("a".to_string(), Tag::new(Some("a".to_string()), TagPayload::Byte(0x00)).unwrap()),
-    ///     ("b".to_string(), Tag::new(Some("a".to_string()), TagPayload::Byte(0x03)).unwrap())
+    ///     ("a".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x00)).unwrap()),
+    ///     ("b".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x03)).unwrap())
     /// ].into());
     ///
     /// assert_eq!(consistent.is_consistent(), Some(true));
@@ -208,10 +190,7 @@ impl TagPayload {
         match self {
             TagPayload::Compound(map) => Some(!map.iter().any(|entry| {
                 // returning true here means that this is *inconsistent*
-                match &entry.1.name {
-                    Some(name) => entry.0 != name,
-                    None => true,
-                }
+                entry.0 != &entry.1.name
             })),
             TagPayload::List(ty, list) => Some(!list.iter().any(|item| item.type_id() != ty.id())),
             _ => None,
@@ -222,7 +201,6 @@ impl TagPayload {
 impl PartialEq for TagPayload {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Empty, Self::Empty) => true,
             (Self::Byte(left), Self::Byte(right)) => left == right,
             (Self::Short(left), Self::Short(right)) => left == right,
             (Self::Int(left), Self::Int(right)) => left == right,

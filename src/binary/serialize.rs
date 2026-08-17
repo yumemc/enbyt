@@ -222,7 +222,6 @@ pub fn write_long_array_payload<W: Write>(w: &mut W, arr: Vec<i64>) -> Result<us
 
 pub fn write_payload<W: Write>(w: &mut W, payload: TagPayload) -> Result<usize, NBTError> {
     match payload {
-        TagPayload::Empty => Ok(0),
         TagPayload::Byte(value) => write_byte_payload(w, value),
         TagPayload::Short(value) => write_short_payload(w, value),
         TagPayload::Int(value) => write_int_payload(w, value),
@@ -252,7 +251,7 @@ pub fn write_payload<W: Write>(w: &mut W, payload: TagPayload) -> Result<usize, 
 /// ```
 /// use enbyt::{Tag, TagPayload, binary::serialize};
 ///
-/// let tag = Tag::new(Some("foo".to_string()), TagPayload::String("bar".to_string())).unwrap();
+/// let tag = Tag::new("foo".to_string(), TagPayload::String("bar".to_string())).unwrap();
 /// let mut buf = Vec::new();
 ///
 /// serialize::write_tag(&mut buf, tag).unwrap();
@@ -264,10 +263,7 @@ pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
 
     written += w.write(&tag_type_id.to_be_bytes())?;
 
-    written += match tag.name {
-        Some(name) => write_string(w, name)?,
-        None => 0,
-    };
+    written += write_string(w, tag.name)?;
 
     written += write_payload(w, tag.payload)?;
 
@@ -280,7 +276,7 @@ pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
 /// ```
 /// use enbyt::{Tag, TagPayload, binary::serialize};
 ///
-/// let tag = Tag::new(Some("foo".to_string()), TagPayload::String("bar".to_string())).unwrap();
+/// let tag = Tag::new("foo".to_string(), TagPayload::String("bar".to_string())).unwrap();
 /// let mut buf = Vec::new();
 ///
 /// serialize::write_compressed_tag(buf, tag).unwrap();

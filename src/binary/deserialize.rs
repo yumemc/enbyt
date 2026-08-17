@@ -8,7 +8,7 @@ use flate2::read::GzDecoder;
 use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16},
-    combinator::{dispatch, empty, fail, repeat, seq},
+    combinator::{dispatch, fail, peek, repeat, seq},
     error::{ContextError, StrContext},
     token::{any, take},
 };
@@ -120,11 +120,7 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
         return Err(winnow::error::ErrMode::Cut(ContextError::new()));
     }
 
-    let tags = match (tag_type, size) {
-        (TagPayloadType::Empty, 0) => Vec::new(),
-        (TagPayloadType::Empty, _) => return Err(winnow::error::ErrMode::Cut(ContextError::new())),
-        (_, size) => repeat(size as usize, parse_payload(tag_type)).parse_next(input)?,
-    };
+    let tags = repeat(size as usize, parse_payload(tag_type)).parse_next(input)?;
 
     Ok((tag_type, tags))
 }
@@ -136,24 +132,18 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
 pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, Tag>> {
     let mut tags_map = HashMap::new();
 
+    // TODO: this whole pattern should be trivially replaceable by some winnow builtin
+    // combinator, use it.
     loop {
-        let tag = parse_tag.parse_next(input)?;
+        let is_end = peek(any.map(|x| x == 0x00)).parse_next(input)?;
 
-        // stop on empty payload (delimeter)
-        if let TagPayload::Empty = tag.payload {
+        if is_end {
             break;
         }
 
-        // if there's no name, then we have no key for the output map, so we can't continue.
-        //
-        // (we *could* recover from this and just continue if we were to make the API return
-        // a collection of tags instead, in which case we couldn't need a key, but I'm not
-        // sure if that's ideal.)
-        match &tag.name {
-            Some(name) => tags_map.insert(name.clone(), tag),
-            // TODO: add context
-            None => return Err(winnow::error::ErrMode::Cut(ContextError::new())),
-        };
+        let tag = parse_tag.parse_next(input)?;
+
+        tags_map.insert(tag.name.clone(), tag);
     }
 
     Ok(tags_map)
@@ -214,7 +204,6 @@ pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
 /// | [`TagPayloadType::Long`]     | [`parse_long_array_payload`] |
 pub fn parse_payload(ty: TagPayloadType) -> impl FnMut(&mut &[u8]) -> ModalResult<TagPayload> {
     move |input: &mut &[u8]| match ty {
-        TagPayloadType::Empty => Ok(TagPayload::Empty),
         TagPayloadType::Byte => parse_byte_payload.map(TagPayload::Byte).parse_next(input),
         TagPayloadType::Short => parse_short_payload.map(TagPayload::Short).parse_next(input),
         TagPayloadType::Int => parse_int_payload.map(TagPayload::Int).parse_next(input),
@@ -251,29 +240,27 @@ pub fn parse_payload(ty: TagPayloadType) -> impl FnMut(&mut &[u8]) -> ModalResul
 /// use enbyt::binary::deserialize;
 /// use std::fs::File;
 ///
-/// let data: &[u8] = &[0x00]; // <-- your data would be here
-/// let tag = deserialize::parse_tag(&mut &data[..]).unwrap();
+/// let data: &[u8] = &[]; // <-- your data would be here
+/// let tag = deserialize::parse_tag(&mut &data[..]);
 ///
 /// dbg!(tag);
 /// ```
 pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
-    let tag_name = || parse_tag_name.map(Some);
     let make_tag = |(name, payload)| Tag::new(name, payload);
 
     dispatch! { any;
-                0x0 => empty.try_map(|()| Tag::new(None, TagPayload::Empty)),
-                0x01 => seq!((tag_name(), parse_byte_payload.map(TagPayload::Byte))).try_map(make_tag),
-                0x02 => seq!((tag_name(), parse_short_payload.map(TagPayload::Short))).try_map(make_tag),
-                0x03 => seq!((tag_name(), parse_int_payload.map(TagPayload::Int))).try_map(make_tag),
-                0x04 => seq!((tag_name(), parse_long_payload.map(TagPayload::Long))).try_map(make_tag),
-                0x05 => seq!((tag_name(), parse_float_payload.map(TagPayload::Float))).try_map(make_tag),
-                0x06 => seq!((tag_name(), parse_double_payload.map(TagPayload::Double))).try_map(make_tag),
-                0x07 => seq!((tag_name(), parse_byte_array_payload.map(TagPayload::ByteArray))).try_map(make_tag),
-                0x08 => seq!((tag_name(), parse_string_payload.map(TagPayload::String))).try_map(make_tag),
-                0x09 => seq!((tag_name(), parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)))).try_map(make_tag),
-                0x0a => seq!((tag_name(), parse_compound_payload.map(TagPayload::Compound))).try_map(make_tag),
-                0x0b => seq!((tag_name(), parse_int_array_payload.map(TagPayload::IntArray))).try_map(make_tag),
-                0x0c => seq!((tag_name(), parse_long_array_payload.map(TagPayload::LongArray))).try_map(make_tag),
+                0x01 => seq!((parse_tag_name, parse_byte_payload.map(TagPayload::Byte))).try_map(make_tag),
+                0x02 => seq!((parse_tag_name, parse_short_payload.map(TagPayload::Short))).try_map(make_tag),
+                0x03 => seq!((parse_tag_name, parse_int_payload.map(TagPayload::Int))).try_map(make_tag),
+                0x04 => seq!((parse_tag_name, parse_long_payload.map(TagPayload::Long))).try_map(make_tag),
+                0x05 => seq!((parse_tag_name, parse_float_payload.map(TagPayload::Float))).try_map(make_tag),
+                0x06 => seq!((parse_tag_name, parse_double_payload.map(TagPayload::Double))).try_map(make_tag),
+                0x07 => seq!((parse_tag_name, parse_byte_array_payload.map(TagPayload::ByteArray))).try_map(make_tag),
+                0x08 => seq!((parse_tag_name, parse_string_payload.map(TagPayload::String))).try_map(make_tag),
+                0x09 => seq!((parse_tag_name, parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)))).try_map(make_tag),
+                0x0a => seq!((parse_tag_name, parse_compound_payload.map(TagPayload::Compound))).try_map(make_tag),
+                0x0b => seq!((parse_tag_name, parse_int_array_payload.map(TagPayload::IntArray))).try_map(make_tag),
+                0x0c => seq!((parse_tag_name, parse_long_array_payload.map(TagPayload::LongArray))).try_map(make_tag),
                 _ => fail::<_,_,_>
                 // type_id => parse_nbt_non_empty_tag(type_id),
             }

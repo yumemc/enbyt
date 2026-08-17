@@ -9,19 +9,9 @@ use enbyt::{
 use std::collections::HashMap;
 
 #[test]
-fn test_empty_tag() {
-    let mut input: &[u8] = &[0x00u8];
-
-    assert_eq!(
-        parse_tag(&mut input),
-        Ok(Tag::new(None, TagPayload::Empty).unwrap())
-    );
-}
-
-#[test]
 fn test_heterogenous_list() {
     let result = Tag::new(
-        Some("list".to_string()),
+        "list".to_string(),
         TagPayload::List(
             TagPayloadType::Int,
             vec![TagPayload::String("aa".to_string()), TagPayload::Byte(4)],
@@ -36,7 +26,7 @@ fn test_homogenous_list() {
     let mut buf = Vec::new();
 
     let list = Tag::new(
-        Some("list".to_string()),
+        "list".to_string(),
         TagPayload::List(
             TagPayloadType::Int,
             vec![TagPayload::Int(3), TagPayload::Int(4)],
@@ -58,7 +48,7 @@ fn test_byte_payload_length() {
 fn test_empty_string_tag() {
     let mut buf = Vec::new();
 
-    let tag = Tag::new(Some(String::new()), TagPayload::String(String::new())).unwrap();
+    let tag = Tag::new(String::new(), TagPayload::String(String::new())).unwrap();
     write_tag(&mut buf, tag.clone()).unwrap();
 
     assert_eq!(buf, vec![0x08, 0x00, 0x00, 0x00, 0x00]);
@@ -72,7 +62,7 @@ fn test_empty_string_tag() {
 fn test_empty_compound_tag() {
     let mut buf = Vec::new();
 
-    let tag = Tag::new(Some(String::new()), TagPayload::Compound(HashMap::new())).unwrap();
+    let tag = Tag::new(String::new(), TagPayload::Compound(HashMap::new())).unwrap();
     write_tag(&mut buf, tag.clone()).unwrap();
 
     assert_eq!(buf, vec![0x0a, 0x00, 0x00, 0x00]);
@@ -80,17 +70,4 @@ fn test_empty_compound_tag() {
     let parsed = parse_tag(&mut &buf[..]);
 
     assert_eq!(parsed, Ok(tag));
-}
-
-#[test]
-fn test_empty_type_list_with_elements() {
-    let result = Tag::new(
-        Some("list".to_string()),
-        TagPayload::List(TagPayloadType::Empty, vec![TagPayload::Empty]),
-    );
-
-    assert_eq!(
-        result,
-        Err(NBTError::InvalidListElementType(TagPayloadType::Empty))
-    );
 }

@@ -7,10 +7,9 @@ use hegel::generators as gs;
 /// This generator should model every possible, (but not necessarily semantically correct) payload.
 #[hegel::composite]
 pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
-    let id = tc.draw(gs::integers::<u8>().min_value(0).max_value(12));
+    let id = tc.draw(gs::integers::<u8>().min_value(0x01).max_value(12));
 
     match id {
-        0x00 => TagPayload::Empty,
         0x01 => TagPayload::Byte(tc.draw(gs::integers::<i8>())),
         0x02 => TagPayload::Short(tc.draw(gs::integers::<i16>())),
         0x03 => TagPayload::Int(tc.draw(gs::integers::<i32>())),
@@ -22,7 +21,7 @@ pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
         0x09 => TagPayload::List(
             tc.draw(
                 gs::integers::<u8>()
-                    .filter(|x| (0..=0xc).contains(x))
+                    .filter(|x| (0x01..=0xc).contains(x))
                     .map(|x| x.try_into().unwrap()),
             ),
             tc.draw(gs::vecs(generate_tag_payload())),
@@ -40,7 +39,7 @@ pub fn generate_tag(tc: &TestCase) -> Tag {
     // a Tag, but we can't if the input is invalid. thus, we keep generating until we draw a valid
     // input to the tag constructor
     loop {
-        let name = tc.draw(gs::optional(gs::text()));
+        let name = tc.draw(gs::text());
         let payload = tc.draw(generate_tag_payload());
 
         match Tag::new(name, payload) {
