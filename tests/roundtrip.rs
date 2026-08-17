@@ -125,3 +125,16 @@ fn test_parse_tag(tc: TestCase) {
         assert_eq!(parsed, Ok(tag));
     }
 }
+
+#[hegel::test]
+fn test_parse_compressed_tag(tc: TestCase) {
+    let tag = tc.draw(generate_tag());
+
+    let mut buf = Vec::new();
+
+    if write_compressed_tag(&mut buf, tag.clone()).is_ok() {
+        let parsed = parse_compressed_tag(&mut &buf[..]);
+
+        assert_eq!(parsed, Ok(tag));
+    }
+}
