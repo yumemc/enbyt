@@ -15,6 +15,9 @@ pub enum NBTError {
     #[error("not all entries have the same key as their value's name")]
     InconsistentCompound,
 
+    #[error("not all list items have specified type")]
+    InconsistentList,
+
     #[error("invalid payload type")]
     InvalidPayloadType,
 

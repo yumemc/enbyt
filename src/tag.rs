@@ -31,8 +31,7 @@ impl Tag {
     /// use enbyt::{Tag, TagPayload};
     ///
     /// let thirty = Tag::new(
-    ///     Some(String::from("thirty")),
-    ///     TagPayload::Int(30)
+    ///     Some("thirty".to_string()), TagPayload::Int(30)
     /// ).expect("couldn't create tag");
     /// ```
     pub fn new(name: Option<String>, payload: TagPayload) -> Result<Self, NBTError> {
@@ -44,10 +43,16 @@ impl Tag {
             // reject nameless non-Empty tags
             (None, _) => Err(NBTError::InvalidTagName(None)),
 
-            // reject inconsistent Compount tags
+            // reject inconsistent Compound tags
             (_, TagPayload::Compound(_)) if !payload.is_consistent().unwrap() => {
                 Err(NBTError::InconsistentCompound)
             }
+
+            // reject inconsistent List tags
+            (_, TagPayload::List(_, _)) if !payload.is_consistent().unwrap() => {
+                Err(NBTError::InconsistentList)
+            }
+
             _ => Ok(Self { name, payload }),
         }
     }
@@ -149,9 +154,53 @@ impl TagPayload {
         self.payload_type() as u8
     }
 
-    /// Checks if the [`HashMap`]'s keys are the same as the tag names.
+    /// Checks if the payload is consistent.
     ///
-    /// This works only for [`TagPayload::Compound`] payloads
+    /// This has a different definition depending on the type of payload:
+    /// - For [`TagPayload::Compound`]: checks if the [`HashMap`]'s keys are consistent with the tag
+    ///   names
+    /// - For [`TagPayload::List`]: checks if all the elements are of the same type (which must be
+    ///   the same type specified in the first part of the tuple)
+    /// - For any other payload type [`None`] is returned.
+    ///
+    /// # Examples
+    ///
+    /// ## Compound Tags
+    /// ```
+    /// use enbyt::{Tag, TagPayload};
+    ///
+    /// let consistent = TagPayload::Compound([
+    ///     ("a".to_string(), Tag::new(Some("a".to_string()), TagPayload::Byte(0x00)).unwrap()),
+    ///     ("b".to_string(), Tag::new(Some("b".to_string()), TagPayload::Byte(0x03)).unwrap())
+    /// ].into());
+    ///
+    /// let inconsistent = TagPayload::Compound([
+    ///     ("a".to_string(), Tag::new(Some("a".to_string()), TagPayload::Byte(0x00)).unwrap()),
+    ///     ("b".to_string(), Tag::new(Some("a".to_string()), TagPayload::Byte(0x03)).unwrap())
+    /// ].into());
+    ///
+    /// assert_eq!(consistent.is_consistent(), Some(true));
+    /// assert_eq!(inconsistent.is_consistent(), Some(false));
+    /// ```
+    ///
+    ////// ## List Tags
+    /// ```
+    /// use enbyt::{Tag, TagPayload, TagPayloadType};
+    ///
+    /// let consistent = TagPayload::List(TagPayloadType::Byte, vec![
+    ///     Tag::new(Some("a".to_string()), TagPayload::Byte(0x00)).unwrap(),
+    ///     Tag::new(Some("b".to_string()), TagPayload::Byte(0x03)).unwrap()
+    /// ]);
+    ///
+    /// assert_eq!(consistent.is_consistent(), Some(true));
+    ///
+    /// let inconsistent = TagPayload::List(TagPayloadType::Byte, vec![
+    ///     Tag::new(Some("a".to_string()), TagPayload::Byte(0x00)).unwrap(),
+    ///     Tag::new(Some("b".to_string()), TagPayload::Int(0x03)).unwrap()
+    /// ]);
+    ///
+    /// assert_eq!(inconsistent.is_consistent(), Some(false));
+    /// ```
     pub fn is_consistent(&self) -> Option<bool> {
         match self {
             TagPayload::Compound(map) => Some(!map.iter().any(|entry| {
@@ -161,6 +210,7 @@ impl TagPayload {
                     None => true,
                 }
             })),
+            TagPayload::List(ty, list) => Some(!list.iter().any(|item| item.type_id() != ty.id())),
             _ => None,
         }
     }

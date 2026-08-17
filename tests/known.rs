@@ -1,5 +1,5 @@
 use enbyt::{
-    Tag, TagPayload, TagPayloadType,
+    NBTError, Tag, TagPayload, TagPayloadType,
     binary::{
         deserialize::parse_tag,
         serialize::{write_byte_payload, write_tag},
@@ -20,9 +20,7 @@ fn test_empty_tag() {
 
 #[test]
 fn test_heterogenous_list() {
-    let mut buf = Vec::new();
-
-    let list = Tag::new(
+    let result = Tag::new(
         Some("list".to_string()),
         TagPayload::List(
             TagPayloadType::Int,
@@ -31,13 +29,9 @@ fn test_heterogenous_list() {
                 Tag::new(Some("b".to_string()), TagPayload::Byte(4)).unwrap(),
             ],
         ),
-    )
-    .unwrap();
-
-    assert_matches!(
-        write_tag(&mut buf, list),
-        Err(enbyt::NBTError::UnexpectedType(0x03, _))
     );
+
+    assert_matches!(result, Err(NBTError::InconsistentList));
 }
 
 #[test]
