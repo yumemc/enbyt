@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use flate2::{Compression, write::GzEncoder};
+
 use crate::{NBTError, Tag, TagPayload, TagPayloadType};
 
 /// Writes a string `str` into `w`.
@@ -255,4 +257,19 @@ pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
     }?;
 
     Ok(written)
+}
+
+/// Writes a gzip-compressed NBT tag into a writer implementing [`Write`].
+///
+/// Unlike other write functions this does not the amount of bytes writen.
+pub fn write_compressed_tag<W: Write>(w: W, tag: Tag) -> Result<(), NBTError> {
+    let mut encoder = GzEncoder::new(w, Compression::default());
+
+    write_tag(&mut encoder, tag)?;
+
+    // I believe we *don't* need to also call encoder.flush(), but I may be wrong.
+    encoder.try_finish()?;
+
+    // TODO: it's a shame not to return the amount of bytes written, how do we do that?
+    Ok(())
 }
