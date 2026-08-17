@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use strum::{EnumDiscriminants, FromRepr};
+use strum::{EnumDiscriminants, EnumIs, EnumTryAs, FromRepr};
 
 use crate::error::NBTError;
 
@@ -79,7 +79,7 @@ impl Tag {
 }
 
 /// The data held by a [`Tag`] container.
-#[derive(Debug, Clone, EnumDiscriminants)]
+#[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, EnumIs)]
 #[strum_discriminants(name(TagPayloadType), derive(FromRepr, Hash), vis(pub))]
 #[repr(u8)]
 pub enum TagPayload {
