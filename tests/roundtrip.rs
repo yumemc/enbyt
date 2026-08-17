@@ -9,7 +9,7 @@ use crate::shared::generators::generate_tag;
 mod shared;
 
 #[hegel::test]
-fn test_parse_string(tc: TestCase) {
+fn test_string_roundtrip(tc: TestCase) {
     let str = tc.draw(gs::text());
 
     let mut buf = Vec::new();
@@ -19,7 +19,7 @@ fn test_parse_string(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_byte_payload(tc: TestCase) {
+fn test_byte_payload_roundtrip(tc: TestCase) {
     let byte = tc.draw(gs::integers::<i8>());
 
     let mut buf = Vec::new();
@@ -32,7 +32,7 @@ fn test_parse_byte_payload(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_short_payload(tc: TestCase) {
+fn test_short_payload_roundtrip(tc: TestCase) {
     let num = tc.draw(gs::integers::<i16>());
 
     let mut buf = Vec::new();
@@ -45,7 +45,7 @@ fn test_parse_short_payload(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_int_payload(tc: TestCase) {
+fn test_int_payload_roundtrip(tc: TestCase) {
     let num = tc.draw(gs::integers::<i32>());
 
     let mut buf = Vec::new();
@@ -58,7 +58,7 @@ fn test_parse_int_payload(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_long_payload(tc: TestCase) {
+fn test_long_payload_roundtrip(tc: TestCase) {
     let num = tc.draw(gs::integers::<i64>());
 
     let mut buf = Vec::new();
@@ -71,7 +71,7 @@ fn test_parse_long_payload(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_float_payload(tc: TestCase) {
+fn test_float_payload_roundtrip(tc: TestCase) {
     let num = tc.draw(gs::floats::<f32>());
 
     let mut buf = Vec::new();
@@ -85,7 +85,7 @@ fn test_parse_float_payload(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_double_payload(tc: TestCase) {
+fn test_double_payload_roundtrip(tc: TestCase) {
     let num = tc.draw(gs::floats::<f64>());
 
     let mut buf = Vec::new();
@@ -99,7 +99,7 @@ fn test_parse_double_payload(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_byte_array_payload(tc: TestCase) {
+fn test_byte_array_payload_roundtrip(tc: TestCase) {
     let arr = tc.draw(gs::vecs(gs::integers::<i8>()));
 
     let mut buf = Vec::new();
@@ -112,7 +112,7 @@ fn test_parse_byte_array_payload(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_tag(tc: TestCase) {
+fn test_tag_roundtrip(tc: TestCase) {
     let tag = tc.draw(generate_tag());
 
     let mut buf = Vec::new();
@@ -127,7 +127,7 @@ fn test_parse_tag(tc: TestCase) {
 }
 
 #[hegel::test]
-fn test_parse_compressed_tag(tc: TestCase) {
+fn test_compressed_tag_roundtrip(tc: TestCase) {
     let tag = tc.draw(generate_tag());
 
     let mut buf = Vec::new();
