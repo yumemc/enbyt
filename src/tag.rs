@@ -19,10 +19,8 @@ impl Tag {
     /// valid.
     ///
     /// # Errors
-    ///
-    /// This function may not succeed under the following cases:
-    /// - an inconsistent [`TagPayload::Compound`] is given (i.e. a compound payload where the keys
-    ///   of the entries don't match the names of the tags)
+    /// - a [`TagPayload::List`] is given whose elements are not all of the same type, which should
+    ///   is the type (specifically [`TagPayload::List::0`]).
     ///
     /// # Examples
     /// ```
@@ -34,11 +32,6 @@ impl Tag {
     /// ```
     pub fn new(name: String, payload: TagPayload) -> Result<Self, NBTError> {
         match (&name, &payload) {
-            // reject inconsistent Compound tags
-            (_, TagPayload::Compound(_)) if !payload.is_consistent().unwrap() => {
-                Err(NBTError::InconsistentCompound)
-            }
-
             // reject inconsistent List tags
             (_, TagPayload::List(_, _)) if !payload.is_consistent().unwrap() => {
                 Err(NBTError::InconsistentList)
@@ -150,31 +143,11 @@ impl TagPayload {
     /// Checks if the payload is consistent.
     ///
     /// This has a different definition depending on the type of payload:
-    /// - For [`TagPayload::Compound`]: checks if the [`HashMap`]'s keys are consistent with the tag
-    ///   names
     /// - For [`TagPayload::List`]: checks if all the elements are of the same type (which must be
     ///   the same type specified in the first part of the tuple)
     /// - For any other payload type [`None`] is returned.
     ///
     /// # Examples
-    ///
-    /// ## Compound Tags
-    /// ```
-    /// use enbyt::{Tag, TagPayload};
-    ///
-    /// let consistent = TagPayload::Compound([
-    ///     ("a".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x00)).unwrap()),
-    ///     ("b".to_string(), Tag::new("b".to_string(), TagPayload::Byte(0x03)).unwrap())
-    /// ].into());
-    ///
-    /// let inconsistent = TagPayload::Compound([
-    ///     ("a".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x00)).unwrap()),
-    ///     ("b".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x03)).unwrap())
-    /// ].into());
-    ///
-    /// assert_eq!(consistent.is_consistent(), Some(true));
-    /// assert_eq!(inconsistent.is_consistent(), Some(false));
-    /// ```
     ///
     ////// ## List Tags
     /// ```
