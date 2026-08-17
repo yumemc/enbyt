@@ -258,21 +258,7 @@ pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
         None => 0,
     };
 
-    written += match tag.payload {
-        TagPayload::Empty => Ok(0),
-        TagPayload::Byte(value) => write_byte_payload(w, value),
-        TagPayload::Short(value) => write_short_payload(w, value),
-        TagPayload::Int(value) => write_int_payload(w, value),
-        TagPayload::Long(value) => write_long_payload(w, value),
-        TagPayload::Float(value) => write_float_payload(w, value),
-        TagPayload::Double(value) => write_double_payload(w, value),
-        TagPayload::String(value) => write_string_payload(w, value),
-        TagPayload::List(tag_type, value) => write_list_payload(w, (tag_type, value)),
-        TagPayload::Compound(value) => write_compound_payload(w, value.into_values().collect()),
-        TagPayload::ByteArray(value) => write_byte_array_payload(w, value),
-        TagPayload::IntArray(items) => write_int_array_payload(w, items),
-        TagPayload::LongArray(items) => write_long_array_payload(w, items),
-    }?;
+    written += write_payload(w, tag.payload)?;
 
     Ok(written)
 }
