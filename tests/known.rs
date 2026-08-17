@@ -34,14 +34,14 @@ fn test_homogenous_list() {
     )
     .unwrap();
 
-    assert!(write_tag(&mut buf, list).is_ok());
+    assert!(write_tag(&mut buf, &list).is_ok());
 }
 
 #[test]
 fn test_byte_payload_length() {
     let mut buf = Vec::new();
 
-    assert_eq!(write_byte_payload(&mut buf, 3), Ok(1));
+    assert_eq!(write_byte_payload(&mut buf, &3), Ok(1));
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn test_empty_string_tag() {
     let mut buf = Vec::new();
 
     let tag = Tag::new(String::new(), TagPayload::String(String::new())).unwrap();
-    write_tag(&mut buf, tag.clone()).unwrap();
+    write_tag(&mut buf, &tag).unwrap();
 
     assert_eq!(buf, vec![0x08, 0x00, 0x00, 0x00, 0x00]);
 
@@ -63,7 +63,7 @@ fn test_empty_compound_tag() {
     let mut buf = Vec::new();
 
     let tag = Tag::new(String::new(), TagPayload::Compound(HashMap::new())).unwrap();
-    write_tag(&mut buf, tag.clone()).unwrap();
+    write_tag(&mut buf, &tag).unwrap();
 
     assert_eq!(buf, vec![0x0a, 0x00, 0x00, 0x00]);
 
