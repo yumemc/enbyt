@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Read};
 
+use flate2::read::GzDecoder;
 use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16},
@@ -8,7 +9,7 @@ use winnow::{
     token::{any, take},
 };
 
-use crate::{Tag, TagPayload, TagPayloadType};
+use crate::{NBTError, Tag, TagPayload, TagPayloadType};
 
 /// Parses a string from a byte slice `input` into a [`String`].
 pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
@@ -189,4 +190,18 @@ pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
                 // type_id => parse_nbt_non_empty_tag(type_id),
             }
             .parse_next(input)
+}
+
+/// Parses a gzip-compressed NBT tag from a reader implementing [`Read`].
+///
+/// Often, NBT data from Minecraft is compressed.
+pub fn parse_compressed_tag<R: Read>(r: R) -> Result<Tag, NBTError> {
+    let mut decoder = GzDecoder::new(r);
+
+    let mut buf = Vec::new();
+    decoder.read_to_end(&mut buf)?;
+
+    let tag = parse_tag(&mut &buf[..]).map_err(NBTError::ParsingError)?;
+
+    Ok(tag)
 }

@@ -1,6 +1,7 @@
 use std::io;
 
 use thiserror::Error;
+use winnow::error::{ContextError, ErrMode};
 
 use crate::Tag;
 
@@ -23,6 +24,9 @@ pub enum NBTError {
 
     #[error("io error: {0:?}")]
     IO(#[from] io::Error),
+
+    #[error("parsing error: {0:?}")]
+    ParsingError(ErrMode<ContextError>),
 }
 
 impl PartialEq for NBTError {
