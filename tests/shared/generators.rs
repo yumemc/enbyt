@@ -25,7 +25,7 @@ pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
                     .filter(|x| (0..0xc).contains(x))
                     .map(|x| x.try_into().unwrap()),
             ),
-            tc.draw(gs::vecs(generate_tag())),
+            tc.draw(gs::vecs(generate_tag_payload())),
         ),
         0x0a => TagPayload::Compound(tc.draw(gs::hashmaps(gs::text(), generate_tag()))),
         0x0b => TagPayload::IntArray(tc.draw(gs::vecs(gs::integers::<i32>()))),

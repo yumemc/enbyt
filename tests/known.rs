@@ -24,10 +24,7 @@ fn test_heterogenous_list() {
         Some("list".to_string()),
         TagPayload::List(
             TagPayloadType::Int,
-            vec![
-                Tag::new(Some("a".to_string()), TagPayload::String("aa".to_string())).unwrap(),
-                Tag::new(Some("b".to_string()), TagPayload::Byte(4)).unwrap(),
-            ],
+            vec![TagPayload::String("aa".to_string()), TagPayload::Byte(4)],
         ),
     );
 
@@ -42,10 +39,7 @@ fn test_homogenous_list() {
         Some("list".to_string()),
         TagPayload::List(
             TagPayloadType::Int,
-            vec![
-                Tag::new(Some("a".to_string()), TagPayload::Int(3)).unwrap(),
-                Tag::new(Some("b".to_string()), TagPayload::Int(4)).unwrap(),
-            ],
+            vec![TagPayload::Int(3), TagPayload::Int(4)],
         ),
     )
     .unwrap();
@@ -86,4 +80,17 @@ fn test_empty_compound_tag() {
     let parsed = parse_tag(&mut &buf[..]);
 
     assert_eq!(parsed, Ok(tag));
+}
+
+#[test]
+fn test_empty_type_list_with_elements() {
+    let result = Tag::new(
+        Some("list".to_string()),
+        TagPayload::List(TagPayloadType::Empty, vec![TagPayload::Empty]),
+    );
+
+    assert_eq!(
+        result,
+        Err(NBTError::InvalidListElementType(TagPayloadType::Empty))
+    );
 }
