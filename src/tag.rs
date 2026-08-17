@@ -104,7 +104,7 @@ pub enum TagPayload {
     ///
     /// All elements of the [`HashMap<String, Tag>`] must be consistent, i.e. their keys must match
     /// the [`Tag::name`] of the [`Tag`].
-    Compound(HashMap<String, Tag>) = 0x0a,
+    Compound(HashMap<String, TagPayload>) = 0x0a,
 
     /// A list payload containing several signed 4-byte numbers.
     IntArray(Vec<i32>) = 0x0b,
