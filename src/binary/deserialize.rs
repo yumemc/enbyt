@@ -167,6 +167,55 @@ pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
     Ok(ints)
 }
 
+/// Parses a [`TagPayload`] of a given [`TagPayloadType`] `ty` from a byte slice `input`.
+///
+/// Routes to one of the below methods:
+///
+/// | Type                         | Parser                       |
+/// | -----------------------------|------------------------------|
+/// | [`TagPayloadType::Byte`]     | [`parse_byte_payload`]       |
+/// | [`TagPayloadType::Short`]    | [`parse_short_payload`]      |
+/// | [`TagPayloadType::Int`]      | [`parse_int_payload`]        |
+/// | [`TagPayloadType::Long`]     | [`parse_long_payload`]       |
+/// | [`TagPayloadType::Float`]    | [`parse_float_payload`]      |
+/// | [`TagPayloadType::Double`]   | [`parse_double_payload`]     |
+/// | [`TagPayloadType::Byte`]     | [`parse_byte_array_payload`] |
+/// | [`TagPayloadType::String`]   | [`parse_string_payload`]     |
+/// | [`TagPayloadType::Compound`] | [`parse_compound_payload`]   |
+/// | [`TagPayloadType::Int`]      | [`parse_int_array_payload`]  |
+/// | [`TagPayloadType::Long`]     | [`parse_long_array_payload`] |
+pub fn parse_payload(input: &mut &[u8], ty: TagPayloadType) -> ModalResult<TagPayload> {
+    match ty {
+        TagPayloadType::Empty => empty.value(TagPayload::Empty).parse_next(input),
+        TagPayloadType::Byte => parse_byte_payload.parse_next(input).map(TagPayload::Byte),
+        TagPayloadType::Short => parse_short_payload.parse_next(input).map(TagPayload::Short),
+        TagPayloadType::Int => parse_int_payload.parse_next(input).map(TagPayload::Int),
+        TagPayloadType::Long => parse_long_payload.parse_next(input).map(TagPayload::Long),
+        TagPayloadType::Float => parse_float_payload.parse_next(input).map(TagPayload::Float),
+        TagPayloadType::Double => parse_double_payload
+            .parse_next(input)
+            .map(TagPayload::Double),
+        TagPayloadType::ByteArray => parse_byte_array_payload
+            .parse_next(input)
+            .map(TagPayload::ByteArray),
+        TagPayloadType::String => parse_string_payload
+            .parse_next(input)
+            .map(TagPayload::String),
+        TagPayloadType::List => parse_list_payload
+            .parse_next(input)
+            .map(|(ty, list)| TagPayload::List(ty, list)),
+        TagPayloadType::Compound => parse_compound_payload
+            .parse_next(input)
+            .map(TagPayload::Compound),
+        TagPayloadType::IntArray => parse_int_array_payload
+            .parse_next(input)
+            .map(TagPayload::IntArray),
+        TagPayloadType::LongArray => parse_long_array_payload
+            .parse_next(input)
+            .map(TagPayload::LongArray),
+    }
+}
+
 /// Parses an NBT tag from a byte slice `input` into a [`Tag`].
 pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
     let tag_name = || parse_tag_name.map(Some);
