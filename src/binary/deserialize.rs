@@ -1,3 +1,7 @@
+//! Contains the code for deserializing binary NBT data.
+//!
+//! A lot of the functions in this module are relatively low-level. While they can be used, most of
+//! the time one should only need [`parse_compressed_tag`] and perhaps [`parse_tag`].
 use std::{collections::HashMap, io::Read};
 
 use flate2::read::GzDecoder;
@@ -219,7 +223,18 @@ pub fn parse_payload(ty: TagPayloadType) -> impl FnMut(&mut &[u8]) -> ModalResul
     }
 }
 
-/// Parses an NBT tag from a byte slice `input` into a [`Tag`].
+/// Parses a raw NBT tag from a byte slice `input` into a [`Tag`].
+///
+/// # Example
+/// ```
+/// use enbyt::binary::deserialize;
+/// use std::fs::File;
+///
+/// let data: &[u8] = &[0x00]; // <-- your data would be here
+/// let tag = deserialize::parse_tag(&mut &data[..]).unwrap();
+///
+/// dbg!(tag);
+/// ```
 pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
     let tag_name = || parse_tag_name.map(Some);
     let make_tag = |(name, payload)| Tag::new(name, payload);
@@ -246,7 +261,19 @@ pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
 
 /// Parses a gzip-compressed NBT tag from a reader implementing [`Read`].
 ///
-/// Often, NBT data from Minecraft is compressed.
+/// More commonly NBT data for Minecraft is gzip-compressed, so the below code can be used to
+/// deserialize, for example, a `level.dat` file.
+///
+/// # Example
+/// ```
+/// use enbyt::binary::deserialize;
+/// use std::fs::File;
+///
+/// let file = File::open("./tests/samples/level.dat").unwrap();
+/// let tag = deserialize::parse_compressed_tag(file).unwrap();
+///
+/// dbg!(tag);
+/// ```
 pub fn parse_compressed_tag<R: Read>(r: R) -> Result<Tag, NBTError> {
     let mut decoder = GzDecoder::new(r);
 
