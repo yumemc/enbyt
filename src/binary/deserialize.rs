@@ -301,7 +301,6 @@ pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
                 0x0b => seq!((parse_tag_name, parse_int_array_payload.map(TagPayload::IntArray))).try_map(make_tag),
                 0x0c => seq!((parse_tag_name, parse_long_array_payload.map(TagPayload::LongArray))).try_map(make_tag),
                 _ => fail::<_,_,_>
-                // type_id => parse_nbt_non_empty_tag(type_id),
             }
             .parse_next(input)
 }
