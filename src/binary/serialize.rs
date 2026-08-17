@@ -101,7 +101,7 @@ pub fn write_double_payload<W: Write>(w: &mut W, value: &f64) -> Result<usize, N
 /// The format is:
 /// - 4 bytes for the size of the array (Big Endian-encoded)
 /// - the literal byte array.
-pub fn write_byte_array_payload<W: Write>(w: &mut W, arr: &Vec<i8>) -> Result<usize, NBTError> {
+pub fn write_byte_array_payload<W: Write>(w: &mut W, arr: &[i8]) -> Result<usize, NBTError> {
     let mut written = 0;
 
     let length = arr.len() as i32;
@@ -134,7 +134,7 @@ pub fn write_string_payload<W: Write>(w: &mut W, str: &str) -> Result<usize, NBT
 /// - every payload in the list
 pub fn write_list_payload<W: Write>(
     w: &mut W,
-    (tag_type, list): (&TagPayloadType, &Vec<TagPayload>),
+    (tag_type, list): (&TagPayloadType, &[TagPayload]),
 ) -> Result<usize, NBTError> {
     let mut written = 0;
 
@@ -188,7 +188,7 @@ pub fn write_compound_payload<W: Write>(
 /// The format is:
 /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
 /// - n int payloads (see [`write_int_payload`])
-pub fn write_int_array_payload<W: Write>(w: &mut W, arr: &Vec<i32>) -> Result<usize, NBTError> {
+pub fn write_int_array_payload<W: Write>(w: &mut W, arr: &[i32]) -> Result<usize, NBTError> {
     let mut written = 0;
 
     let length = arr.len() as i32;
@@ -209,7 +209,7 @@ pub fn write_int_array_payload<W: Write>(w: &mut W, arr: &Vec<i32>) -> Result<us
 /// The format is:
 /// - 4 bytes for the size (as in the length, not to be confused with size in bytes)
 /// - n long payloads (see [`write_long_payload`])
-pub fn write_long_array_payload<W: Write>(w: &mut W, arr: &Vec<i64>) -> Result<usize, NBTError> {
+pub fn write_long_array_payload<W: Write>(w: &mut W, arr: &[i64]) -> Result<usize, NBTError> {
     let mut written = 0;
 
     let length = arr.len() as i32;
