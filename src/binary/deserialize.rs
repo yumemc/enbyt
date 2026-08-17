@@ -38,47 +38,62 @@ pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
 ///
 /// This wraps [`parse_string`].
 pub fn parse_tag_name(input: &mut &[u8]) -> ModalResult<String> {
-    parse_string.parse_next(input)
+    parse_string
+        .context(StrContext::Label("tag name"))
+        .parse_next(input)
 }
 
 /// Parses a NBT byte tag's payload into a [`i8`].
 /// For the format see [`super::serialize::write_byte_payload`].
 pub fn parse_byte_payload(input: &mut &[u8]) -> ModalResult<i8> {
-    take(1usize).parse_next(input).map(|bytes| {
-        let byte = *bytes.first().unwrap();
+    take(1usize)
+        .context(StrContext::Label("byte payload"))
+        .parse_next(input)
+        .map(|bytes| {
+            let byte = *bytes.first().unwrap();
 
-        byte as i8
-    })
+            byte as i8
+        })
 }
 
 /// Parses a NBT short tag's payload into an [`i16`].
 /// For the format see [`super::serialize::write_short_payload`].
 pub fn parse_short_payload(input: &mut &[u8]) -> ModalResult<i16> {
-    be_i16.parse_next(input)
+    be_i16
+        .context(StrContext::Label("short payload"))
+        .parse_next(input)
 }
 
 /// Parses a NBT int tag's payload into an [`i32`].
 /// For the format see [`super::serialize::write_int_payload`].
 pub fn parse_int_payload(input: &mut &[u8]) -> ModalResult<i32> {
-    be_i32.parse_next(input)
+    be_i32
+        .context(StrContext::Label("int payload"))
+        .parse_next(input)
 }
 
 /// Parses a NBT long tag's payload into an [`i64`].
 /// For the format see [`super::serialize::write_long_payload`].
 pub fn parse_long_payload(input: &mut &[u8]) -> ModalResult<i64> {
-    be_i64.parse_next(input)
+    be_i64
+        .context(StrContext::Label("long payload"))
+        .parse_next(input)
 }
 
 /// Parses a NBT float tag's payload into an [`f32`].
 /// For the format see [`super::serialize::write_float_payload`].
 pub fn parse_float_payload(input: &mut &[u8]) -> ModalResult<f32> {
-    be_f32.parse_next(input)
+    be_f32
+        .context(StrContext::Label("float payload"))
+        .parse_next(input)
 }
 
 /// Parses a NBT double tag's payload into an [`f64`].
 /// For the format see [`super::serialize::write_double_payload`].
 pub fn parse_double_payload(input: &mut &[u8]) -> ModalResult<f64> {
-    be_f64.parse_next(input)
+    be_f64
+        .context(StrContext::Label("double payload"))
+        .parse_next(input)
 }
 
 /// Parses a NBT byte array tag's payload into a [`Vec<i8>`].
@@ -86,7 +101,9 @@ pub fn parse_double_payload(input: &mut &[u8]) -> ModalResult<f64> {
 ///
 /// Uses [`parse_byte_payload`] for parsing the actual bytes.
 pub fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i8>> {
-    let len = be_i32.parse_next(input)? as usize;
+    let len = be_i32
+        .context(StrContext::Label("byte array length"))
+        .parse_next(input)? as usize;
 
     let mut bytes = vec![];
 
@@ -102,7 +119,9 @@ pub fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i8>> {
 ///
 /// This wraps [`parse_string`].
 pub fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
-    parse_string.parse_next(input)
+    parse_string
+        .context(StrContext::Label("string payload "))
+        .parse_next(input)
 }
 
 /// Parses a NBT list tag's payload into a [`(TagPayloadType, Vec<TagPayload>)`]. That is, a tuple
@@ -110,17 +129,28 @@ pub fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
 ///
 /// For the format see [`super::serialize::write_list_payload`].
 pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec<TagPayload>)> {
-    let tag_type_id = any.parse_next(input)? as i8;
+    let tag_type_id = any
+        .context(StrContext::Label("list type id"))
+        .parse_next(input)? as i8;
+
     let tag_type: TagPayloadType = (tag_type_id as u8)
         .try_into()
         .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?;
 
-    let size = be_i32.parse_next(input)?;
+    let size = be_i32
+        .context(StrContext::Label("list size"))
+        .parse_next(input)?;
+
     if size < 0 {
         return Err(winnow::error::ErrMode::Cut(ContextError::new()));
     }
 
-    let tags = repeat(size as usize, parse_payload(tag_type)).parse_next(input)?;
+    let tags = repeat(
+        size as usize,
+        parse_payload(tag_type).context(StrContext::Label("list item")),
+    )
+    .context(StrContext::Label("list items"))
+    .parse_next(input)?;
 
     Ok((tag_type, tags))
 }
@@ -135,7 +165,12 @@ pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, 
     // TODO: this whole pattern should be trivially replaceable by some winnow builtin
     // combinator, use it.
     loop {
-        let is_end = peek(any.map(|x| x == 0x00)).parse_next(input)?;
+        // TODO: extract out to function
+        let is_end = peek(
+            any.context(StrContext::Label("end marker"))
+                .map(|x| x == 0x00),
+        )
+        .parse_next(input)?;
 
         if is_end {
             break;
@@ -154,7 +189,9 @@ pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, 
 ///
 /// Uses [`parse_int_payload`] for parsing the actual ints.
 pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
-    let len = be_i32.parse_next(input)? as usize;
+    let len = be_i32
+        .context(StrContext::Label("array length"))
+        .parse_next(input)? as usize;
 
     // TODO: zero copy?
     let mut ints = vec![];
@@ -172,7 +209,9 @@ pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
 ///
 /// Uses [`parse_long_payload`] for parsing the actual ints.
 pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
-    let len = be_i32.parse_next(input)? as usize;
+    let len = be_i32
+        .context(StrContext::Label("array length"))
+        .parse_next(input)? as usize;
 
     // TODO: zero copy?
     let mut ints = vec![];
