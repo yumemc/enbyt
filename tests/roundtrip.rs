@@ -24,7 +24,7 @@ fn test_byte_payload_roundtrip(tc: TestCase) {
 
     let mut buf = Vec::new();
 
-    write_byte_payload(&mut buf, &byte).unwrap();
+    write_byte_payload(&mut buf, byte).unwrap();
 
     let parsed = parse_byte_payload(&mut &buf[..]);
 
@@ -37,7 +37,7 @@ fn test_short_payload_roundtrip(tc: TestCase) {
 
     let mut buf = Vec::new();
 
-    write_short_payload(&mut buf, &num).unwrap();
+    write_short_payload(&mut buf, num).unwrap();
 
     let parsed = parse_short_payload(&mut &buf[..]);
 
@@ -50,7 +50,7 @@ fn test_int_payload_roundtrip(tc: TestCase) {
 
     let mut buf = Vec::new();
 
-    write_int_payload(&mut buf, &num).unwrap();
+    write_int_payload(&mut buf, num).unwrap();
 
     let parsed = parse_int_payload(&mut &buf[..]);
 
@@ -63,7 +63,7 @@ fn test_long_payload_roundtrip(tc: TestCase) {
 
     let mut buf = Vec::new();
 
-    write_long_payload(&mut buf, &num).unwrap();
+    write_long_payload(&mut buf, num).unwrap();
 
     let parsed = parse_long_payload(&mut &buf[..]);
 
@@ -76,7 +76,7 @@ fn test_float_payload_roundtrip(tc: TestCase) {
 
     let mut buf = Vec::new();
 
-    write_float_payload(&mut buf, &num).unwrap();
+    write_float_payload(&mut buf, num).unwrap();
 
     let parsed = parse_float_payload(&mut &buf[..]);
 
@@ -90,7 +90,7 @@ fn test_double_payload_roundtrip(tc: TestCase) {
 
     let mut buf = Vec::new();
 
-    write_double_payload(&mut buf, &num).unwrap();
+    write_double_payload(&mut buf, num).unwrap();
 
     let parsed = parse_double_payload(&mut &buf[..]);
 

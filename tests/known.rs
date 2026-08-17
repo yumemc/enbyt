@@ -41,7 +41,7 @@ fn test_homogenous_list() {
 fn test_byte_payload_length() {
     let mut buf = Vec::new();
 
-    assert_eq!(write_byte_payload(&mut buf, &3), Ok(1));
+    assert_eq!(write_byte_payload(&mut buf, 3), Ok(1));
 }
 
 #[test]

@@ -45,8 +45,8 @@ pub fn write_empty_payload<W: Write>(w: &mut W) -> Result<usize, NBTError> {
 /// Returns the amount of bytes written.
 ///
 /// This encodes it in two's complement form.
-pub fn write_byte_payload<W: Write>(w: &mut W, byte: &i8) -> Result<usize, NBTError> {
-    Ok(w.write(&[*byte as u8])?)
+pub fn write_byte_payload<W: Write>(w: &mut W, byte: i8) -> Result<usize, NBTError> {
+    Ok(w.write(&[byte as u8])?)
 }
 
 /// Writes a a signed 2 byte number `value` into `w`.
@@ -54,7 +54,7 @@ pub fn write_byte_payload<W: Write>(w: &mut W, byte: &i8) -> Result<usize, NBTEr
 /// Returns the amount of bytes written.
 ///
 /// This encodes it in Big Endian form.
-pub fn write_short_payload<W: Write>(w: &mut W, value: &i16) -> Result<usize, NBTError> {
+pub fn write_short_payload<W: Write>(w: &mut W, value: i16) -> Result<usize, NBTError> {
     Ok(w.write(&value.to_be_bytes())?)
 }
 
@@ -63,7 +63,7 @@ pub fn write_short_payload<W: Write>(w: &mut W, value: &i16) -> Result<usize, NB
 /// Returns the amount of bytes written.
 ///
 /// This encodes it in Big Endian form.
-pub fn write_int_payload<W: Write>(w: &mut W, value: &i32) -> Result<usize, NBTError> {
+pub fn write_int_payload<W: Write>(w: &mut W, value: i32) -> Result<usize, NBTError> {
     Ok(w.write(&value.to_be_bytes())?)
 }
 
@@ -72,7 +72,7 @@ pub fn write_int_payload<W: Write>(w: &mut W, value: &i32) -> Result<usize, NBTE
 /// Returns the amount of bytes written.
 ///
 /// This encodes it in Big Endian form.
-pub fn write_long_payload<W: Write>(w: &mut W, value: &i64) -> Result<usize, NBTError> {
+pub fn write_long_payload<W: Write>(w: &mut W, value: i64) -> Result<usize, NBTError> {
     Ok(w.write(&value.to_be_bytes())?)
 }
 
@@ -81,7 +81,7 @@ pub fn write_long_payload<W: Write>(w: &mut W, value: &i64) -> Result<usize, NBT
 /// Returns the amount of bytes written.
 ///
 /// This encodes it in Big Endian form.
-pub fn write_float_payload<W: Write>(w: &mut W, value: &f32) -> Result<usize, NBTError> {
+pub fn write_float_payload<W: Write>(w: &mut W, value: f32) -> Result<usize, NBTError> {
     Ok(w.write(&value.to_be_bytes())?)
 }
 
@@ -90,7 +90,7 @@ pub fn write_float_payload<W: Write>(w: &mut W, value: &f32) -> Result<usize, NB
 /// Returns the amount of bytes written.
 ///
 /// This encodes it in Big Endian form.
-pub fn write_double_payload<W: Write>(w: &mut W, value: &f64) -> Result<usize, NBTError> {
+pub fn write_double_payload<W: Write>(w: &mut W, value: f64) -> Result<usize, NBTError> {
     Ok(w.write(&value.to_be_bytes())?)
 }
 
@@ -108,7 +108,7 @@ pub fn write_byte_array_payload<W: Write>(w: &mut W, arr: &[i8]) -> Result<usize
 
     written += w.write(&length.to_be_bytes())?;
 
-    for item in arr {
+    for &item in arr {
         written += write_byte_payload(w, item)?;
     }
 
@@ -195,7 +195,7 @@ pub fn write_int_array_payload<W: Write>(w: &mut W, arr: &[i32]) -> Result<usize
 
     written += w.write(&length.to_be_bytes())?;
 
-    for item in arr {
+    for &item in arr {
         written += write_int_payload(w, item)?;
     }
 
@@ -216,7 +216,7 @@ pub fn write_long_array_payload<W: Write>(w: &mut W, arr: &[i64]) -> Result<usiz
 
     written += w.write(&length.to_be_bytes())?;
 
-    for item in arr {
+    for &item in arr {
         written += write_long_payload(w, item)?;
     }
 
@@ -225,12 +225,12 @@ pub fn write_long_array_payload<W: Write>(w: &mut W, arr: &[i64]) -> Result<usiz
 
 pub fn write_payload<W: Write>(w: &mut W, payload: &TagPayload) -> Result<usize, NBTError> {
     match payload {
-        TagPayload::Byte(value) => write_byte_payload(w, value),
-        TagPayload::Short(value) => write_short_payload(w, value),
-        TagPayload::Int(value) => write_int_payload(w, value),
-        TagPayload::Long(value) => write_long_payload(w, value),
-        TagPayload::Float(value) => write_float_payload(w, value),
-        TagPayload::Double(value) => write_double_payload(w, value),
+        TagPayload::Byte(value) => write_byte_payload(w, *value),
+        TagPayload::Short(value) => write_short_payload(w, *value),
+        TagPayload::Int(value) => write_int_payload(w, *value),
+        TagPayload::Long(value) => write_long_payload(w, *value),
+        TagPayload::Float(value) => write_float_payload(w, *value),
+        TagPayload::Double(value) => write_double_payload(w, *value),
         TagPayload::String(value) => write_string_payload(w, value),
         TagPayload::List(tag_type, value) => write_list_payload(w, (tag_type, value)),
         TagPayload::Compound(value) => write_compound_payload(w, value),
