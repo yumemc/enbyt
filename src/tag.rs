@@ -104,15 +104,12 @@ pub enum TagPayload {
     /// A textual payload.
     String(String) = 0x08,
 
-    /// A list payload, containing several [`Tag`]s.
+    /// A list payload, containing several [`TagPayload`]s of the same type.
     ///
     /// Tuple containing:
-    /// - [`TagPayloadType`] denoting the Type of the tags inside the list.
-    /// - [`Vec<Tag>`] containing the tags.
-    ///
-    /// All items inside the [`Vec<Tag>`] must have a consistent type, and be of the type denoted by
-    /// the first member of the tuple.
-    List(TagPayloadType, Vec<Tag>) = 0x09,
+    /// - [`TagPayloadType`] denoting the Type of the payloads inside the list.
+    /// - [`Vec<TagPayload>`] containing the payloads.
+    List(TagPayloadType, Vec<TagPayload>) = 0x09,
 
     /// A collection payload containing [`Tag`]s indexed by their name.
     ///
@@ -188,15 +185,15 @@ impl TagPayload {
     /// use enbyt::{Tag, TagPayload, TagPayloadType};
     ///
     /// let consistent = TagPayload::List(TagPayloadType::Byte, vec![
-    ///     Tag::new(Some("a".to_string()), TagPayload::Byte(0x00)).unwrap(),
-    ///     Tag::new(Some("b".to_string()), TagPayload::Byte(0x03)).unwrap()
+    ///     TagPayload::Byte(0x00),
+    ///     TagPayload::Byte(0x03)
     /// ]);
     ///
     /// assert_eq!(consistent.is_consistent(), Some(true));
     ///
     /// let inconsistent = TagPayload::List(TagPayloadType::Byte, vec![
-    ///     Tag::new(Some("a".to_string()), TagPayload::Byte(0x00)).unwrap(),
-    ///     Tag::new(Some("b".to_string()), TagPayload::Int(0x03)).unwrap()
+    ///     TagPayload::Byte(0x00),
+    ///     TagPayload::Int(0x03)
     /// ]);
     ///
     /// assert_eq!(inconsistent.is_consistent(), Some(false));

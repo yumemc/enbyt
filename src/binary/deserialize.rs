@@ -91,9 +91,9 @@ pub fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
     parse_string.parse_next(input)
 }
 
-/// Parses an NBT array tag's payload from a byte slice `input` into a [`(i8, Vec<Tag>)`]
-/// containing the size and the tag array.
-pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec<Tag>)> {
+/// Parses an NBT array tag's payload from a byte slice `input` into a tuple containing the type of
+/// the payloads and the vec of payloads.
+pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec<TagPayload>)> {
     let tag_type_id = any.parse_next(input)? as i8;
     let tag_type: TagPayloadType = (tag_type_id as u8)
         .try_into()
@@ -101,11 +101,7 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
 
     let size = be_i32.parse_next(input)? as usize;
 
-    let tags = repeat(size, parse_tag).parse_next(input)?;
-
-    // TODO: as per the reference, the tags are all of the same type. Should this return an
-    // error if they are not? This would risk losing corrupt data with the user unable to do
-    // anything about it. Perhaps some sort of `strict` option.
+    let tags = repeat(size, parse_payload(tag_type)).parse_next(input)?;
 
     Ok((tag_type, tags))
 }
@@ -184,35 +180,35 @@ pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
 /// | [`TagPayloadType::Compound`] | [`parse_compound_payload`]   |
 /// | [`TagPayloadType::Int`]      | [`parse_int_array_payload`]  |
 /// | [`TagPayloadType::Long`]     | [`parse_long_array_payload`] |
-pub fn parse_payload(input: &mut &[u8], ty: TagPayloadType) -> ModalResult<TagPayload> {
-    match ty {
-        TagPayloadType::Empty => empty.value(TagPayload::Empty).parse_next(input),
-        TagPayloadType::Byte => parse_byte_payload.parse_next(input).map(TagPayload::Byte),
-        TagPayloadType::Short => parse_short_payload.parse_next(input).map(TagPayload::Short),
-        TagPayloadType::Int => parse_int_payload.parse_next(input).map(TagPayload::Int),
-        TagPayloadType::Long => parse_long_payload.parse_next(input).map(TagPayload::Long),
-        TagPayloadType::Float => parse_float_payload.parse_next(input).map(TagPayload::Float),
+pub fn parse_payload(ty: TagPayloadType) -> impl FnMut(&mut &[u8]) -> ModalResult<TagPayload> {
+    move |input: &mut &[u8]| match ty {
+        TagPayloadType::Empty => Ok(TagPayload::Empty),
+        TagPayloadType::Byte => parse_byte_payload.map(TagPayload::Byte).parse_next(input),
+        TagPayloadType::Short => parse_short_payload.map(TagPayload::Short).parse_next(input),
+        TagPayloadType::Int => parse_int_payload.map(TagPayload::Int).parse_next(input),
+        TagPayloadType::Long => parse_long_payload.map(TagPayload::Long).parse_next(input),
+        TagPayloadType::Float => parse_float_payload.map(TagPayload::Float).parse_next(input),
         TagPayloadType::Double => parse_double_payload
-            .parse_next(input)
-            .map(TagPayload::Double),
+            .map(TagPayload::Double)
+            .parse_next(input),
         TagPayloadType::ByteArray => parse_byte_array_payload
-            .parse_next(input)
-            .map(TagPayload::ByteArray),
+            .map(TagPayload::ByteArray)
+            .parse_next(input),
         TagPayloadType::String => parse_string_payload
-            .parse_next(input)
-            .map(TagPayload::String),
+            .map(TagPayload::String)
+            .parse_next(input),
         TagPayloadType::List => parse_list_payload
-            .parse_next(input)
-            .map(|(ty, list)| TagPayload::List(ty, list)),
+            .map(|(ty, list)| TagPayload::List(ty, list))
+            .parse_next(input),
         TagPayloadType::Compound => parse_compound_payload
-            .parse_next(input)
-            .map(TagPayload::Compound),
+            .map(TagPayload::Compound)
+            .parse_next(input),
         TagPayloadType::IntArray => parse_int_array_payload
-            .parse_next(input)
-            .map(TagPayload::IntArray),
+            .map(TagPayload::IntArray)
+            .parse_next(input),
         TagPayloadType::LongArray => parse_long_array_payload
-            .parse_next(input)
-            .map(TagPayload::LongArray),
+            .map(TagPayload::LongArray)
+            .parse_next(input),
     }
 }
 
