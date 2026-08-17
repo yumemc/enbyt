@@ -22,7 +22,7 @@ pub fn generate_tag_payload(tc: &TestCase) -> TagPayload {
         0x09 => TagPayload::List(
             tc.draw(
                 gs::integers::<u8>()
-                    .filter(|x| (0..0xc).contains(x))
+                    .filter(|x| (0..=0xc).contains(x))
                     .map(|x| x.try_into().unwrap()),
             ),
             tc.draw(gs::vecs(generate_tag_payload())),
