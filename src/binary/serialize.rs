@@ -1,3 +1,4 @@
+//! Contains the code for serializing binary NBT data.
 use std::io::Write;
 
 use flate2::{Compression, write::GzEncoder};
@@ -246,6 +247,16 @@ pub fn write_payload<W: Write>(w: &mut W, payload: TagPayload) -> Result<usize, 
 /// - 2 bytes for the length of the name (see [`write_string`])
 /// - n bytes for the name's UTF-8 encoded
 /// - the tag's payload
+///
+/// # Example
+/// ```
+/// use enbyt::{Tag, TagPayload, binary::serialize};
+///
+/// let tag = Tag::new(Some("foo".to_string()), TagPayload::String("bar".to_string())).unwrap();
+/// let mut buf = Vec::new();
+///
+/// serialize::write_tag(&mut buf, tag).unwrap();
+/// ```
 pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
     let mut written = 0;
 
@@ -265,7 +276,15 @@ pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
 
 /// Writes a gzip-compressed NBT tag into a writer implementing [`Write`].
 ///
-/// Unlike other write functions this does not the amount of bytes writen.
+/// # Example
+/// ```
+/// use enbyt::{Tag, TagPayload, binary::serialize};
+///
+/// let tag = Tag::new(Some("foo".to_string()), TagPayload::String("bar".to_string())).unwrap();
+/// let mut buf = Vec::new();
+///
+/// serialize::write_compressed_tag(buf, tag).unwrap();
+/// ```
 pub fn write_compressed_tag<W: Write>(w: W, tag: Tag) -> Result<(), NBTError> {
     let mut encoder = GzEncoder::new(w, Compression::default());
 
