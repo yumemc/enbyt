@@ -15,7 +15,8 @@ use winnow::{
 
 use crate::{NBTError, Tag, TagPayload, TagPayloadType};
 
-/// Parses a string from a byte slice `input` into a [`String`].
+/// Parses an NBT string into a [`String`].
+/// For the format see [`super::serialize::write_string`].
 pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
     // 2 bytes of length
     let length = be_u16
@@ -33,14 +34,15 @@ pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
     Ok(string)
 }
 
-/// Parses a tag's name from a byte slice `input` into a [`String`].
+/// Parses a NBT tag's name.
 ///
 /// This wraps [`parse_string`].
 pub fn parse_tag_name(input: &mut &[u8]) -> ModalResult<String> {
     parse_string.parse_next(input)
 }
 
-/// Parses a NBT byte tag's payload from a byte slice `input` into an [`i8`].
+/// Parses a NBT byte tag's payload into a [`i8`].
+/// For the format see [`super::serialize::write_byte_payload`].
 pub fn parse_byte_payload(input: &mut &[u8]) -> ModalResult<i8> {
     take(1usize).parse_next(input).map(|bytes| {
         let byte = *bytes.first().unwrap();
@@ -49,32 +51,40 @@ pub fn parse_byte_payload(input: &mut &[u8]) -> ModalResult<i8> {
     })
 }
 
-/// Parses a NBT short tag's payload from a byte slice `input` into an [`i16`].
+/// Parses a NBT short tag's payload into an [`i16`].
+/// For the format see [`super::serialize::write_short_payload`].
 pub fn parse_short_payload(input: &mut &[u8]) -> ModalResult<i16> {
     be_i16.parse_next(input)
 }
 
-/// Parses a NBT int tag's payload from a byte slice `input` into an [`i32`].
+/// Parses a NBT int tag's payload into an [`i32`].
+/// For the format see [`super::serialize::write_int_payload`].
 pub fn parse_int_payload(input: &mut &[u8]) -> ModalResult<i32> {
     be_i32.parse_next(input)
 }
 
-/// Parses a NBT long tag's payload from a byte slice `input` into an [`i64`].
+/// Parses a NBT long tag's payload into an [`i64`].
+/// For the format see [`super::serialize::write_long_payload`].
 pub fn parse_long_payload(input: &mut &[u8]) -> ModalResult<i64> {
     be_i64.parse_next(input)
 }
 
-/// Parses a NBT float tag's payload from a byte slice `input` into an [`f32`].
+/// Parses a NBT float tag's payload into an [`f32`].
+/// For the format see [`super::serialize::write_float_payload`].
 pub fn parse_float_payload(input: &mut &[u8]) -> ModalResult<f32> {
     be_f32.parse_next(input)
 }
 
-/// Parses a NBT float tag's payload from a byte slice `input` into an [`f64`].
+/// Parses a NBT double tag's payload into an [`f64`].
+/// For the format see [`super::serialize::write_double_payload`].
 pub fn parse_double_payload(input: &mut &[u8]) -> ModalResult<f64> {
     be_f64.parse_next(input)
 }
 
-/// Parses a NBT byte array tag's payload from a byte slice `input` into a [`Vec<u8>`].
+/// Parses a NBT byte array tag's payload into a [`Vec<i8>`].
+/// For the format see [`super::serialize::write_byte_array_payload`].
+///
+/// Uses [`parse_byte_payload`] for parsing the actual bytes.
 pub fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i8>> {
     let len = be_i32.parse_next(input)? as usize;
 
@@ -95,8 +105,10 @@ pub fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
     parse_string.parse_next(input)
 }
 
-/// Parses an NBT array tag's payload from a byte slice `input` into a tuple containing the type of
-/// the payloads and the vec of payloads.
+/// Parses a NBT list tag's payload into a [`(TagPayloadType, Vec<TagPayload>)`]. That is, a tuple
+/// containing a type, and a vec containing payloads of that type.
+///
+/// For the format see [`super::serialize::write_list_payload`].
 pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec<TagPayload>)> {
     let tag_type_id = any.parse_next(input)? as i8;
     let tag_type: TagPayloadType = (tag_type_id as u8)
@@ -117,7 +129,10 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
     Ok((tag_type, tags))
 }
 
-/// Parses an NBT compound tag's payload from a byte slice `input` into a [`HashMap<String, Tag>`].
+/// Parses a NBT compound tag's payload into a [`HashMap<String, Tag>`], mapping the names of tags
+/// to the respective tags.
+///
+/// For the format see [`super::serialize::write_compound_payload`].
 pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, Tag>> {
     let mut tags_map = HashMap::new();
 
@@ -144,7 +159,10 @@ pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, 
     Ok(tags_map)
 }
 
-/// Parses a NBT int array tag's payload from a byte slice `input` into a [`Vec<i32>`].
+/// Parses a NBT int array tag's payload into a [`Vec<i32>`].
+/// For the format see [`super::serialize::write_int_array_payload`].
+///
+/// Uses [`parse_int_payload`] for parsing the actual ints.
 pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
     let len = be_i32.parse_next(input)? as usize;
 
@@ -159,7 +177,10 @@ pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
     Ok(ints)
 }
 
-/// Parses a NBT long array tag's payload from a byte slice `input` into a [`Vec<i64>`].
+/// Parses a NBT long array tag's payload into a [`Vec<i64>`].
+/// For the format see [`super::serialize::write_long_array_payload`].
+///
+/// Uses [`parse_long_payload`] for parsing the actual ints.
 pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
     let len = be_i32.parse_next(input)? as usize;
 
@@ -174,7 +195,7 @@ pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
     Ok(ints)
 }
 
-/// Parses a [`TagPayload`] of a given [`TagPayloadType`] `ty` from a byte slice `input`.
+/// Parses a NBT tag payload of a given [`TagPayloadType`] into a [`TagPayload`].
 ///
 /// Routes to one of the below methods:
 ///
