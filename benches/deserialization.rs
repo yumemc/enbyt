@@ -9,13 +9,13 @@ fn criterion_benchmark(c: &mut Criterion) {
 
     c.bench_function("deserialize compressed", |b| {
         b.iter(|| {
-            let _ = black_box(deserialize::parse_compressed_tag(&bytes_compressed[..]));
+            black_box(deserialize::parse_compressed_tag(&bytes_compressed[..])).unwrap();
         })
     });
 
     c.bench_function("deserialize raw", |b| {
         b.iter(|| {
-            let _ = black_box(deserialize::parse_tag(&mut &bytes_raw[..]));
+            black_box(deserialize::parse_tag(&mut &bytes_raw[..])).unwrap();
         })
     });
 }
