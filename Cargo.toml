@@ -10,4 +10,9 @@ thiserror = "2.0.20"
 winnow = "1.0.4"
 
 [dev-dependencies]
+criterion = "0.8.2"
 hegeltest = "0.29.3"
+
+[[bench]]
+name = "deserialize_compressed"
+harness = false
