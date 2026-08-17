@@ -3,7 +3,7 @@ use std::io;
 use thiserror::Error;
 use winnow::error::{ContextError, ErrMode};
 
-use crate::Tag;
+use crate::{Tag, TagPayloadType};
 
 #[derive(Error, Debug)]
 pub enum NBTError {
@@ -18,6 +18,9 @@ pub enum NBTError {
 
     #[error("not all list items have specified type")]
     InconsistentList,
+
+    #[error("payload type {0:?} cannot be used for list elements")]
+    InvalidListElementType(TagPayloadType),
 
     #[error("invalid payload type")]
     InvalidPayloadType,
@@ -38,6 +41,7 @@ impl PartialEq for NBTError {
             }
             (NBTError::InconsistentCompound, NBTError::InconsistentCompound) => true,
             (NBTError::InconsistentList, NBTError::InconsistentList) => true,
+            (NBTError::InvalidListElementType(a), NBTError::InvalidListElementType(b)) => a == b,
             (NBTError::InvalidPayloadType, NBTError::InvalidPayloadType) => true,
 
             // not sure if it's correct but probably best we can do

@@ -99,9 +99,16 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
         .try_into()
         .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?;
 
-    let size = be_i32.parse_next(input)? as usize;
+    let size = be_i32.parse_next(input)?;
+    if size < 0 {
+        return Err(winnow::error::ErrMode::Cut(ContextError::new()));
+    }
 
-    let tags = repeat(size, parse_payload(tag_type)).parse_next(input)?;
+    let tags = match (tag_type, size) {
+        (TagPayloadType::Empty, 0) => Vec::new(),
+        (TagPayloadType::Empty, _) => return Err(winnow::error::ErrMode::Cut(ContextError::new())),
+        (_, size) => repeat(size as usize, parse_payload(tag_type)).parse_next(input)?,
+    };
 
     Ok((tag_type, tags))
 }

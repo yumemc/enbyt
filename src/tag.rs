@@ -25,6 +25,7 @@ impl Tag {
     /// - no `name` is given to a non- [`TagPayload::Empty`] tag
     /// - an inconsistent [`TagPayload::Compound`] is given (i.e. a compound payload where the keys
     ///   of the entries don't match the names of the tags)
+    /// - a [`TagPayload::List`] with [`TagPayloadType::Empty`] contains elements
     ///
     /// # Examples
     /// ```
@@ -46,6 +47,11 @@ impl Tag {
             // reject inconsistent Compound tags
             (_, TagPayload::Compound(_)) if !payload.is_consistent().unwrap() => {
                 Err(NBTError::InconsistentCompound)
+            }
+
+            // reject empty payload type for non-empty lists
+            (_, TagPayload::List(TagPayloadType::Empty, list)) if !list.is_empty() => {
+                Err(NBTError::InvalidListElementType(TagPayloadType::Empty))
             }
 
             // reject inconsistent List tags
