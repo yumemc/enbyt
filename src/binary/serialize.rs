@@ -130,21 +130,21 @@ pub fn write_string_payload<W: Write>(w: &mut W, str: String) -> Result<usize, N
 /// The format is:
 /// - 1 byte for the ID of the type of the list's contents
 /// - 4 bytes for the length
-/// - every tag
+/// - every payload in the list
 pub fn write_list_payload<W: Write>(
     w: &mut W,
-    (tag_type, list): (TagPayloadType, Vec<Tag>),
+    (tag_type, list): (TagPayloadType, Vec<TagPayload>),
 ) -> Result<usize, NBTError> {
     let mut written = 0;
 
     let type_id = tag_type as u8;
 
     // ensure all items are of the same type
-    let first_different = list.iter().find(|tag| tag.type_id() != type_id);
-
-    if let Some(tag) = first_different {
-        return Err(NBTError::UnexpectedType(type_id, tag.clone()));
-    }
+    // let first_different = list.iter().find(|tag| tag.type_id() != type_id);
+    //
+    // if let Some(tag) = first_different {
+    //     return Err(NBTError::UnexpectedType(type_id, tag.clone()));
+    // }
 
     let length = list.len() as i32;
 
@@ -152,7 +152,7 @@ pub fn write_list_payload<W: Write>(
     written += w.write(&length.to_be_bytes())?;
 
     for item in list {
-        written += write_tag(w, item)?;
+        written += write_payload(w, item)?;
     }
 
     Ok(written)
@@ -217,6 +217,24 @@ pub fn write_long_array_payload<W: Write>(w: &mut W, arr: Vec<i64>) -> Result<us
     }
 
     Ok(written)
+}
+
+pub fn write_payload<W: Write>(w: &mut W, payload: TagPayload) -> Result<usize, NBTError> {
+    match payload {
+        TagPayload::Empty => Ok(0),
+        TagPayload::Byte(value) => write_byte_payload(w, value),
+        TagPayload::Short(value) => write_short_payload(w, value),
+        TagPayload::Int(value) => write_int_payload(w, value),
+        TagPayload::Long(value) => write_long_payload(w, value),
+        TagPayload::Float(value) => write_float_payload(w, value),
+        TagPayload::Double(value) => write_double_payload(w, value),
+        TagPayload::String(value) => write_string_payload(w, value),
+        TagPayload::List(tag_type, value) => write_list_payload(w, (tag_type, value)),
+        TagPayload::Compound(value) => write_compound_payload(w, value.into_values().collect()),
+        TagPayload::ByteArray(value) => write_byte_array_payload(w, value),
+        TagPayload::IntArray(items) => write_int_array_payload(w, items),
+        TagPayload::LongArray(items) => write_long_array_payload(w, items),
+    }
 }
 
 /// Writes a NBT tag `tag` into `w`.
