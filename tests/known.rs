@@ -6,7 +6,7 @@ use enbyt::{
     },
 };
 
-use std::{assert_matches, collections::HashMap};
+use std::collections::HashMap;
 
 #[test]
 fn test_empty_tag() {
@@ -31,7 +31,7 @@ fn test_heterogenous_list() {
         ),
     );
 
-    assert_matches!(result, Err(NBTError::InconsistentList));
+    assert_eq!(result, Err(NBTError::InconsistentList));
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn test_homogenous_list() {
 fn test_byte_payload_length() {
     let mut buf = Vec::new();
 
-    assert_matches!(write_byte_payload(&mut buf, 3), Ok(1));
+    assert_eq!(write_byte_payload(&mut buf, 3), Ok(1));
 }
 
 #[test]
