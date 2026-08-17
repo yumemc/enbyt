@@ -64,6 +64,12 @@ impl TryFrom<(String, TagPayload)> for Tag {
     }
 }
 
+impl Into<(String, TagPayload)> for Tag {
+    fn into(self) -> (String, TagPayload) {
+        (self.name, self.payload)
+    }
+}
+
 /// The data held by a [`Tag`] container.
 #[derive(Debug, Clone, EnumDiscriminants, EnumTryAs, EnumIs)]
 #[strum_discriminants(name(TagPayloadType), derive(FromRepr, Hash), vis(pub))]
