@@ -13,7 +13,7 @@ fn test_string_roundtrip(tc: TestCase) {
     let str = tc.draw(gs::text());
 
     let mut buf = Vec::new();
-    write_string(&mut buf, str.clone()).unwrap();
+    write_string(&mut buf, &str).unwrap();
 
     assert_eq!(parse_string(&mut &buf[..]), Ok(str));
 }

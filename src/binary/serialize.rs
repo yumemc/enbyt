@@ -5,14 +5,14 @@ use flate2::{Compression, write::GzEncoder};
 
 use crate::{NBTError, Tag, TagPayload, TagPayloadType};
 
-/// Writes a string `str` into `w`.
+/// Writes a string slice `str` into `w`.
 ///
 /// Returns the amount of bytes written.
 ///
 /// The format is:
 /// - 2 byte integer (Big Endian) indicating the string's length
 /// - the string's bytes encoded using UTF-8.
-pub fn write_string<W: Write>(w: &mut W, str: String) -> Result<usize, NBTError> {
+pub fn write_string<W: Write>(w: &mut W, str: &str) -> Result<usize, NBTError> {
     let length = str.len() as u16;
     let string_bytes = str.as_bytes();
 
@@ -29,7 +29,7 @@ pub fn write_string<W: Write>(w: &mut W, str: String) -> Result<usize, NBTError>
 /// Returns the amount of bytes written.
 ///
 /// This wraps [`write_string`].
-pub fn write_tag_name<W: Write>(w: &mut W, name: String) -> Result<usize, NBTError> {
+pub fn write_tag_name<W: Write>(w: &mut W, name: &str) -> Result<usize, NBTError> {
     write_string(w, name)
 }
 
@@ -120,7 +120,7 @@ pub fn write_byte_array_payload<W: Write>(w: &mut W, arr: Vec<i8>) -> Result<usi
 /// Returns the amount of bytes written.
 ///
 /// This wraps [`write_string`]
-pub fn write_string_payload<W: Write>(w: &mut W, str: String) -> Result<usize, NBTError> {
+pub fn write_string_payload<W: Write>(w: &mut W, str: &str) -> Result<usize, NBTError> {
     write_string(w, str)
 }
 
@@ -228,7 +228,7 @@ pub fn write_payload<W: Write>(w: &mut W, payload: TagPayload) -> Result<usize, 
         TagPayload::Long(value) => write_long_payload(w, value),
         TagPayload::Float(value) => write_float_payload(w, value),
         TagPayload::Double(value) => write_double_payload(w, value),
-        TagPayload::String(value) => write_string_payload(w, value),
+        TagPayload::String(value) => write_string_payload(w, &value),
         TagPayload::List(tag_type, value) => write_list_payload(w, (tag_type, value)),
         TagPayload::Compound(value) => write_compound_payload(w, value.into_values().collect()),
         TagPayload::ByteArray(value) => write_byte_array_payload(w, value),
@@ -263,7 +263,7 @@ pub fn write_tag<W: Write>(w: &mut W, tag: Tag) -> Result<usize, NBTError> {
 
     written += w.write(&tag_type_id.to_be_bytes())?;
 
-    written += write_string(w, tag.name)?;
+    written += write_string(w, &tag.name)?;
 
     written += write_payload(w, tag.payload)?;
 
