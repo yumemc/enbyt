@@ -16,3 +16,7 @@ hegeltest = "0.29.3"
 [[bench]]
 name = "deserialization"
 harness = false
+
+[[bench]]
+name = "serialization"
+harness = false
