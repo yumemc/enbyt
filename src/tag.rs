@@ -19,10 +19,8 @@ impl Tag {
     /// valid.
     ///
     /// # Errors
-    ///
-    /// This function may not succeed under the following cases:
-    /// - an inconsistent [`TagPayload::Compound`] is given (i.e. a compound payload where the keys
-    ///   of the entries don't match the names of the tags)
+    /// - a [`TagPayload::List`] is given whose elements are not all of the same type, which should
+    ///   is the type (specifically [`TagPayload::List::0`]).
     ///
     /// # Examples
     /// ```
@@ -34,11 +32,6 @@ impl Tag {
     /// ```
     pub fn new(name: String, payload: TagPayload) -> Result<Self, NBTError> {
         match (&name, &payload) {
-            // reject inconsistent Compound tags
-            (_, TagPayload::Compound(_)) if !payload.is_consistent().unwrap() => {
-                Err(NBTError::InconsistentCompound)
-            }
-
             // reject inconsistent List tags
             (_, TagPayload::List(_, _)) if !payload.is_consistent().unwrap() => {
                 Err(NBTError::InconsistentList)
@@ -60,6 +53,28 @@ impl Tag {
     #[must_use]
     pub fn type_id(&self) -> u8 {
         self.payload.type_id()
+    }
+}
+
+impl TryFrom<(String, TagPayload)> for Tag {
+    type Error = NBTError;
+
+    fn try_from((name, payload): (String, TagPayload)) -> Result<Self, Self::Error> {
+        Tag::new(name, payload)
+    }
+}
+
+impl TryFrom<(&String, &TagPayload)> for Tag {
+    type Error = NBTError;
+
+    fn try_from((name, payload): (&String, &TagPayload)) -> Result<Self, Self::Error> {
+        Tag::new(name.clone(), payload.clone())
+    }
+}
+
+impl From<Tag> for (String, TagPayload) {
+    fn from(tag: Tag) -> Self {
+        (tag.name, tag.payload)
     }
 }
 
@@ -99,11 +114,8 @@ pub enum TagPayload {
     /// - [`Vec<TagPayload>`] containing the payloads.
     List(TagPayloadType, Vec<TagPayload>) = 0x09,
 
-    /// A collection payload containing [`Tag`]s indexed by their name.
-    ///
-    /// All elements of the [`HashMap<String, Tag>`] must be consistent, i.e. their keys must match
-    /// the [`Tag::name`] of the [`Tag`].
-    Compound(HashMap<String, Tag>) = 0x0a,
+    /// A collection payload containing [`TagPayload`]s indexed by their name.
+    Compound(HashMap<String, TagPayload>) = 0x0a,
 
     /// A list payload containing several signed 4-byte numbers.
     IntArray(Vec<i32>) = 0x0b,
@@ -142,31 +154,11 @@ impl TagPayload {
     /// Checks if the payload is consistent.
     ///
     /// This has a different definition depending on the type of payload:
-    /// - For [`TagPayload::Compound`]: checks if the [`HashMap`]'s keys are consistent with the tag
-    ///   names
     /// - For [`TagPayload::List`]: checks if all the elements are of the same type (which must be
     ///   the same type specified in the first part of the tuple)
     /// - For any other payload type [`None`] is returned.
     ///
     /// # Examples
-    ///
-    /// ## Compound Tags
-    /// ```
-    /// use enbyt::{Tag, TagPayload};
-    ///
-    /// let consistent = TagPayload::Compound([
-    ///     ("a".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x00)).unwrap()),
-    ///     ("b".to_string(), Tag::new("b".to_string(), TagPayload::Byte(0x03)).unwrap())
-    /// ].into());
-    ///
-    /// let inconsistent = TagPayload::Compound([
-    ///     ("a".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x00)).unwrap()),
-    ///     ("b".to_string(), Tag::new("a".to_string(), TagPayload::Byte(0x03)).unwrap())
-    /// ].into());
-    ///
-    /// assert_eq!(consistent.is_consistent(), Some(true));
-    /// assert_eq!(inconsistent.is_consistent(), Some(false));
-    /// ```
     ///
     ////// ## List Tags
     /// ```
@@ -188,10 +180,6 @@ impl TagPayload {
     /// ```
     pub fn is_consistent(&self) -> Option<bool> {
         match self {
-            TagPayload::Compound(map) => Some(!map.iter().any(|entry| {
-                // returning true here means that this is *inconsistent*
-                entry.0 != &entry.1.name
-            })),
             TagPayload::List(ty, list) => Some(!list.iter().any(|item| item.type_id() != ty.id())),
             _ => None,
         }
