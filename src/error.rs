@@ -13,9 +13,6 @@ pub enum NBTError {
     #[error("item does not match expected payload type: {0:?}")]
     UnexpectedType(u8, Tag),
 
-    #[error("not all entries have the same key as their value's name")]
-    InconsistentCompound,
-
     #[error("not all list items have specified type")]
     InconsistentList,
 
@@ -39,7 +36,6 @@ impl PartialEq for NBTError {
             (NBTError::UnexpectedType(a_type, a_tag), NBTError::UnexpectedType(b_type, b_tag)) => {
                 a_type == b_type && a_tag == b_tag
             }
-            (NBTError::InconsistentCompound, NBTError::InconsistentCompound) => true,
             (NBTError::InconsistentList, NBTError::InconsistentList) => true,
             (NBTError::InvalidListElementType(a), NBTError::InvalidListElementType(b)) => a == b,
             (NBTError::InvalidPayloadType, NBTError::InvalidPayloadType) => true,
