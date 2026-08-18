@@ -134,7 +134,7 @@ impl TryFrom<u8> for TagPayloadType {
     type Error = NBTError;
 
     fn try_from(id: u8) -> Result<Self, Self::Error> {
-        Self::from_repr(id).ok_or(NBTError::InvalidPayloadType)
+        Self::from_repr(id).ok_or(NBTError::InvalidPayloadType(id))
     }
 }
 

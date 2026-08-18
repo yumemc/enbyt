@@ -19,8 +19,8 @@ pub enum NBTError {
     #[error("payload type {0:?} cannot be used for list elements")]
     InvalidListElementType(TagPayloadType),
 
-    #[error("invalid payload type")]
-    InvalidPayloadType,
+    #[error("invalid payload type: {0}")]
+    InvalidPayloadType(u8),
 
     #[error("io error: {0:?}")]
     IO(#[from] io::Error),
@@ -38,7 +38,7 @@ impl PartialEq for NBTError {
             }
             (NBTError::InconsistentList, NBTError::InconsistentList) => true,
             (NBTError::InvalidListElementType(a), NBTError::InvalidListElementType(b)) => a == b,
-            (NBTError::InvalidPayloadType, NBTError::InvalidPayloadType) => true,
+            (NBTError::InvalidPayloadType(a), NBTError::InvalidPayloadType(b)) => a == b,
 
             // not sure if it's correct but probably best we can do
             (NBTError::IO(a), NBTError::IO(b)) => a.kind() == b.kind(),
