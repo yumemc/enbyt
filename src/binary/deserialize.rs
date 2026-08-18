@@ -9,7 +9,7 @@ use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16},
     combinator::{dispatch, fail, peek, repeat, seq},
-    error::{ContextError, StrContext},
+    error::{ContextError, FromExternalError, StrContext},
     token::{any, take},
 };
 
@@ -28,8 +28,9 @@ pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
         .context(StrContext::Label("string"))
         .parse_next(input)?;
 
-    let string = String::from_utf8(string_bytes.to_vec())
-        .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?; // TODO: add context :)
+    let string = String::from_utf8(string_bytes.to_vec()).map_err(|err| {
+        winnow::error::ErrMode::Cut(ContextError::from_external_error(input, err))
+    })?;
 
     Ok(string)
 }
