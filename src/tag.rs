@@ -106,10 +106,7 @@ pub enum TagPayload {
     /// - [`Vec<TagPayload>`] containing the payloads.
     List(TagPayloadType, Vec<TagPayload>) = 0x09,
 
-    /// A collection payload containing [`Tag`]s indexed by their name.
-    ///
-    /// All elements of the [`HashMap<String, Tag>`] must be consistent, i.e. their keys must match
-    /// the [`Tag::name`] of the [`Tag`].
+    /// A collection payload containing [`TagPayload`]s indexed by their name.
     Compound(HashMap<String, TagPayload>) = 0x0a,
 
     /// A list payload containing several signed 4-byte numbers.
