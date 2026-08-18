@@ -173,6 +173,8 @@ pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, 
         .parse_next(input)?;
 
         if is_end {
+            // consume the end byte for good hygiene
+            take(1usize).parse_next(input)?;
             break;
         }
 
