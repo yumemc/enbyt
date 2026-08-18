@@ -9,7 +9,7 @@ use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16},
     combinator::{dispatch, fail, peek, repeat, seq},
-    error::{ContextError, FromExternalError, StrContext},
+    error::{ContextError, FromExternalError, ParserError, StrContext},
     token::{any, take},
 };
 
@@ -134,16 +134,16 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
         .context(StrContext::Label("list type id"))
         .parse_next(input)? as i8;
 
-    let tag_type: TagPayloadType = (tag_type_id as u8)
-        .try_into()
-        .map_err(|_| winnow::error::ErrMode::Cut(ContextError::new()))?;
+    let tag_type: TagPayloadType = (tag_type_id as u8).try_into().map_err(|err| {
+        winnow::error::ErrMode::Cut(ContextError::from_external_error(input, err))
+    })?;
 
     let size = be_i32
         .context(StrContext::Label("list size"))
         .parse_next(input)?;
 
     if size < 0 {
-        return Err(winnow::error::ErrMode::Cut(ContextError::new()));
+        return Err(winnow::error::ErrMode::Cut(ContextError::from_input(input)));
     }
 
     let tags = repeat(
