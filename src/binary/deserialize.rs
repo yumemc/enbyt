@@ -155,11 +155,11 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
     Ok((tag_type, tags))
 }
 
-/// Parses a NBT compound tag's payload into a [`HashMap<String, Tag>`], mapping the names of tags
-/// to the respective tags.
+/// Parses a NBT compound tag's payload into a [`HashMap<String, TagPayload>`], mapping the names
+/// of tags to their payloads.
 ///
 /// For the format see [`super::serialize::write_compound_payload`].
-pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, Tag>> {
+pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, TagPayload>> {
     let mut tags_map = HashMap::new();
 
     // TODO: this whole pattern should be trivially replaceable by some winnow builtin
@@ -178,7 +178,7 @@ pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, 
 
         let tag = parse_tag.parse_next(input)?;
 
-        tags_map.insert(tag.name.clone(), tag);
+        tags_map.insert(tag.name, tag.payload);
     }
 
     Ok(tags_map)

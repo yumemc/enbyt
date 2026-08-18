@@ -168,12 +168,13 @@ pub fn write_list_payload<W: Write>(
 /// - 0x00, which is an empty NBT tag
 pub fn write_compound_payload<W: Write>(
     w: &mut W,
-    value: &HashMap<String, Tag>,
+    value: &HashMap<String, TagPayload>,
 ) -> Result<usize, NBTError> {
     let mut written = 0;
 
-    for item in value.values() {
-        written += write_tag(w, item)?;
+    for item in value {
+        let tag = Tag::try_from(item)?;
+        written += write_tag(w, &tag)?;
     }
 
     written += write_empty_payload(w)?;
