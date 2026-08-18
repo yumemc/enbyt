@@ -64,9 +64,17 @@ impl TryFrom<(String, TagPayload)> for Tag {
     }
 }
 
-impl Into<(String, TagPayload)> for Tag {
-    fn into(self) -> (String, TagPayload) {
-        (self.name, self.payload)
+impl TryFrom<(&String, &TagPayload)> for Tag {
+    type Error = NBTError;
+
+    fn try_from((name, payload): (&String, &TagPayload)) -> Result<Self, Self::Error> {
+        Tag::new(name.clone(), payload.clone())
+    }
+}
+
+impl From<Tag> for (String, TagPayload) {
+    fn from(tag: Tag) -> Self {
+        (tag.name, tag.payload)
     }
 }
 
