@@ -175,10 +175,6 @@ impl TagPayload {
     /// ```
     pub fn is_consistent(&self) -> Option<bool> {
         match self {
-            TagPayload::Compound(map) => Some(!map.iter().any(|entry| {
-                // returning true here means that this is *inconsistent*
-                entry.0 != &entry.1.name
-            })),
             TagPayload::List(ty, list) => Some(!list.iter().any(|item| item.type_id() != ty.id())),
             _ => None,
         }
