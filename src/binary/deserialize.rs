@@ -8,7 +8,7 @@ use flate2::read::GzDecoder;
 use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16},
-    combinator::{dispatch, fail, peek, repeat, seq},
+    combinator::{dispatch, fail, repeat, seq},
     error::{ContextError, FromExternalError, ParserError, StrContext},
     token::{any, take},
 };
@@ -156,6 +156,15 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
     Ok((tag_type, tags))
 }
 
+/// Parses a NBT empty tag's payload.
+pub fn parse_empty_payload(input: &mut &[u8]) -> ModalResult<()> {
+    any.context(StrContext::Label("end marker"))
+        .verify(|&x| x == 0x00)
+        .parse_next(input)?;
+
+    Ok(())
+}
+
 /// Parses a NBT compound tag's payload into a [`HashMap<String, TagPayload>`], mapping the names
 /// of tags to their payloads.
 ///
@@ -166,16 +175,9 @@ pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, 
     // TODO: this whole pattern should be trivially replaceable by some winnow builtin
     // combinator, use it.
     loop {
-        // TODO: extract out to function
-        let is_end = peek(
-            any.context(StrContext::Label("end marker"))
-                .map(|x| x == 0x00),
-        )
-        .parse_next(input)?;
+        let is_end = parse_empty_payload(input).is_ok();
 
         if is_end {
-            // consume the end byte for good hygiene
-            take(1usize).parse_next(input)?;
             break;
         }
 
