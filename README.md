@@ -3,6 +3,7 @@
 [![Documentation](https://img.shields.io/badge/docs-master-blue.svg)][Documentation]
 ![License](https://img.shields.io/crates/l/enbyt.svg)
 [![Crates Status](https://img.shields.io/crates/v/enbyt.svg)][Crates.io]
+[![Rust](https://github.com/yumemc/enbyt/actions/workflows/rust.yml/badge.svg)](https://github.com/yumemc/enbyt/actions/workflows/rust.yml)
 
 A library for Serializing/Deserializing NBT data. NBT (Named Binary Tag) is a binary data format
 used by Minecraft to encode various kinds of information in worlds.
