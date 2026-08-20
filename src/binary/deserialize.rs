@@ -134,9 +134,7 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
 
 /// Parses an NBT end tag's payload.
 pub fn parse_end_payload(input: &mut &[u8]) -> ModalResult<()> {
-    0x00.context(StrContext::Label("end marker"))
-        .parse_next(input)
-        .map(|_| ())
+    0x00.parse_next(input).map(|_| ())
 }
 
 /// Parses a NBT compound tag's payload into a [`BTreeMap<String, TagPayload>`], mapping the names
