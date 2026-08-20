@@ -7,7 +7,7 @@ use std::{collections::BTreeMap, io::Read};
 use flate2::read::GzDecoder;
 use winnow::{
     ModalResult, Parser,
-    binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16},
+    binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16, length_repeat},
     combinator::{dispatch, fail, repeat, seq},
     error::{ContextError, FromExternalError, ParserError, StrContext},
     token::{any, take},
@@ -97,13 +97,14 @@ pub fn parse_double_payload(input: &mut &[u8]) -> ModalResult<f64> {
 ///
 /// Uses [`parse_byte_payload`] for parsing the actual bytes.
 pub fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i8>> {
-    let len = be_i32
-        .context(StrContext::Label("byte array length"))
-        .parse_next(input)? as usize;
-
-    let bytes = repeat(0..=len, parse_byte_payload).parse_next(input)?;
-
-    Ok(bytes)
+    length_repeat(
+        be_i32
+            .map(|x| x as usize)
+            .context(StrContext::Label("byte array length")),
+        parse_byte_payload.context(StrContext::Label("byte")),
+    )
+    .context(StrContext::Label("byte array payload"))
+    .parse_next(input)
 }
 
 /// Parses an NBT string tag's payload from a byte slice `input` into a [`String`].
@@ -184,14 +185,14 @@ pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<BTreeMap<String,
 ///
 /// Uses [`parse_int_payload`] for parsing the actual ints.
 pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
-    let len = be_i32
-        .context(StrContext::Label("array length"))
-        .parse_next(input)? as usize;
-
-    // TODO: zero copy?
-    let ints = repeat(0..=len, parse_int_payload).parse_next(input)?;
-
-    Ok(ints)
+    length_repeat(
+        be_i32
+            .map(|x| x as usize)
+            .context(StrContext::Label("int array length")),
+        parse_int_payload.context(StrContext::Label("int")),
+    )
+    .context(StrContext::Label("int array payload"))
+    .parse_next(input)
 }
 
 /// Parses a NBT long array tag's payload into a [`Vec<i64>`].
@@ -199,14 +200,14 @@ pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
 ///
 /// Uses [`parse_long_payload`] for parsing the actual ints.
 pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
-    let len = be_i32
-        .context(StrContext::Label("array length"))
-        .parse_next(input)? as usize;
-
-    // TODO: zero copy?
-    let longs = repeat(0..=len, parse_long_payload).parse_next(input)?;
-
-    Ok(longs)
+    length_repeat(
+        be_i32
+            .map(|x| x as usize)
+            .context(StrContext::Label("long array length")),
+        parse_long_payload.context(StrContext::Label("long")),
+    )
+    .context(StrContext::Label("long array payload"))
+    .parse_next(input)
 }
 
 /// Parses a NBT tag payload of a given [`TagPayloadType`] into a [`TagPayload`].
