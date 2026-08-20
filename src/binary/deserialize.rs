@@ -10,7 +10,7 @@ use winnow::{
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16, length_and_then, length_repeat},
     combinator::{dispatch, fail, repeat, seq},
     error::{ContextError, FromExternalError, ParserError, StrContext},
-    token::{any, take_while},
+    token::{any, rest},
 };
 
 use crate::{NBTError, Tag, TagPayload, TagPayloadType};
@@ -20,8 +20,7 @@ use crate::{NBTError, Tag, TagPayload, TagPayloadType};
 pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
     length_and_then(
         be_u16.context(StrContext::Label("string length")),
-        take_while(0.., |_| true)
-            .try_map(|bytes: &[u8]| String::from_utf8(bytes.to_vec()))
+        rest.try_map(|bytes: &[u8]| String::from_utf8(bytes.to_vec()))
             .context(StrContext::Label("utf-8 encoded string")),
     )
     .parse_next(input)
