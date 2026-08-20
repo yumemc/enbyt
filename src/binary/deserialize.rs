@@ -7,10 +7,10 @@ use std::{collections::BTreeMap, io::Read};
 use flate2::read::GzDecoder;
 use winnow::{
     ModalResult, Parser,
-    binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16, length_repeat},
+    binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16, length_repeat, length_take},
     combinator::{dispatch, fail, repeat, seq},
     error::{ContextError, FromExternalError, ParserError, StrContext},
-    token::{any, take},
+    token::any,
 };
 
 use crate::{NBTError, Tag, TagPayload, TagPayloadType};
@@ -18,15 +18,8 @@ use crate::{NBTError, Tag, TagPayload, TagPayloadType};
 /// Parses an NBT string into a [`String`].
 /// For the format see [`super::serialize::write_string`].
 pub fn parse_string(input: &mut &[u8]) -> ModalResult<String> {
-    // 2 bytes of length
-    let length = be_u16
-        .context(StrContext::Label("string length"))
-        .parse_next(input)?;
-
-    // n bytes of string
-    let string_bytes = take(length as usize)
-        .context(StrContext::Label("string"))
-        .parse_next(input)?;
+    let string_bytes =
+        length_take(be_u16.context(StrContext::Label("string length"))).parse_next(input)?;
 
     let string = String::from_utf8(string_bytes.to_vec()).map_err(|err| {
         winnow::error::ErrMode::Cut(ContextError::from_external_error(input, err))
