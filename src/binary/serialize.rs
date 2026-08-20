@@ -33,10 +33,10 @@ pub fn write_tag_name<W: Write>(w: &mut W, name: &str) -> Result<usize, NBTError
     write_string(w, name)
 }
 
-/// Writes a empty NBT tag into `w`.
+/// Writes an end  NBT tag into `w`.
 ///
 /// Returns the amount of bytes written.
-pub fn write_empty_payload<W: Write>(w: &mut W) -> Result<usize, NBTError> {
+pub fn write_end_payload<W: Write>(w: &mut W) -> Result<usize, NBTError> {
     Ok(w.write(&[0x00])?)
 }
 
@@ -177,7 +177,7 @@ pub fn write_compound_payload<W: Write>(
         written += write_tag(w, &tag)?;
     }
 
-    written += write_empty_payload(w)?;
+    written += write_end_payload(w)?;
 
     Ok(written)
 }
@@ -226,6 +226,7 @@ pub fn write_long_array_payload<W: Write>(w: &mut W, arr: &[i64]) -> Result<usiz
 
 pub fn write_payload<W: Write>(w: &mut W, payload: &TagPayload) -> Result<usize, NBTError> {
     match payload {
+        TagPayload::End => write_end_payload(w),
         TagPayload::Byte(value) => write_byte_payload(w, *value),
         TagPayload::Short(value) => write_short_payload(w, *value),
         TagPayload::Int(value) => write_int_payload(w, *value),

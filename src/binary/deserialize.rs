@@ -156,8 +156,8 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
     Ok((tag_type, tags))
 }
 
-/// Parses a NBT empty tag's payload.
-pub fn parse_empty_payload(input: &mut &[u8]) -> ModalResult<()> {
+/// Parses an NBT end tag's payload.
+pub fn parse_end_payload(input: &mut &[u8]) -> ModalResult<()> {
     any.context(StrContext::Label("end marker"))
         .verify(|&x| x == 0x00)
         .parse_next(input)?;
@@ -175,7 +175,7 @@ pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, 
     // TODO: this whole pattern should be trivially replaceable by some winnow builtin
     // combinator, use it.
     loop {
-        let is_end = parse_empty_payload(input).is_ok();
+        let is_end = parse_end_payload(input).is_ok();
 
         if is_end {
             break;
@@ -248,6 +248,7 @@ pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
 /// | [`TagPayloadType::Long`]     | [`parse_long_array_payload`] |
 pub fn parse_payload(ty: TagPayloadType) -> impl FnMut(&mut &[u8]) -> ModalResult<TagPayload> {
     move |input: &mut &[u8]| match ty {
+        TagPayloadType::End => parse_end_payload.map(|_| TagPayload::End).parse_next(input),
         TagPayloadType::Byte => parse_byte_payload.map(TagPayload::Byte).parse_next(input),
         TagPayloadType::Short => parse_short_payload.map(TagPayload::Short).parse_next(input),
         TagPayloadType::Int => parse_int_payload.map(TagPayload::Int).parse_next(input),

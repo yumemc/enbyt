@@ -83,6 +83,9 @@ impl From<Tag> for (String, TagPayload) {
 #[strum_discriminants(name(TagPayloadType), derive(FromRepr, Hash), vis(pub))]
 #[repr(u8)]
 pub enum TagPayload {
+    /// End
+    End = 0x00,
+
     /// A signed 1-byte numeric payload.
     Byte(i8) = 0x01,
 
