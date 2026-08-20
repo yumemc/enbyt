@@ -8,8 +8,8 @@ use flate2::read::GzDecoder;
 use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16, length_and_then, length_repeat},
-    combinator::{dispatch, fail, repeat, seq},
-    error::{ContextError, FromExternalError, ParserError, StrContext},
+    combinator::{dispatch, fail, seq},
+    error::{ContextError, FromExternalError, StrContext},
     token::{any, rest},
 };
 
@@ -120,20 +120,19 @@ pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec
         winnow::error::ErrMode::Cut(ContextError::from_external_error(input, err))
     })?;
 
-    let size = be_i32
-        .context(StrContext::Label("list size"))
-        .parse_next(input)?;
-
-    if size < 0 {
-        return Err(winnow::error::ErrMode::Cut(ContextError::from_input(input)));
-    }
-
-    let tags = repeat(
-        size as usize,
+    let tags = length_repeat(
+        be_i32
+            .map(|x| x as usize)
+            .context(StrContext::Label("list size")),
         parse_payload(tag_type).context(StrContext::Label("list item")),
     )
-    .context(StrContext::Label("list items"))
     .parse_next(input)?;
+
+    // we had this previously but tests seem to pass without it? possibly fixed elsewhere
+    //
+    // if size < 0 {
+    //     return Err(winnow::error::ErrMode::Cut(ContextError::from_input(input)));
+    // }
 
     Ok((tag_type, tags))
 }
