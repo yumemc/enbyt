@@ -47,14 +47,9 @@ pub fn parse_tag_name(input: &mut &[u8]) -> ModalResult<String> {
 /// Parses a NBT byte tag's payload into a [`i8`].
 /// For the format see [`super::serialize::write_byte_payload`].
 pub fn parse_byte_payload(input: &mut &[u8]) -> ModalResult<i8> {
-    take(1usize)
+    any.map(|byte| byte as i8)
         .context(StrContext::Label("byte payload"))
         .parse_next(input)
-        .map(|bytes| {
-            let byte = *bytes.first().unwrap();
-
-            byte as i8
-        })
 }
 
 /// Parses a NBT short tag's payload into an [`i16`].
