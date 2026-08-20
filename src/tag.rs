@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use strum::{EnumDiscriminants, EnumIs, EnumTryAs, FromRepr};
 
@@ -118,7 +118,7 @@ pub enum TagPayload {
     List(TagPayloadType, Vec<TagPayload>) = 0x09,
 
     /// A collection payload containing [`TagPayload`]s indexed by their name.
-    Compound(HashMap<String, TagPayload>) = 0x0a,
+    Compound(BTreeMap<String, TagPayload>) = 0x0a,
 
     /// A list payload containing several signed 4-byte numbers.
     IntArray(Vec<i32>) = 0x0b,

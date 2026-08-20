@@ -2,7 +2,7 @@
 //!
 //! A lot of the functions in this module are relatively low-level. While they can be used, most of
 //! the time one should only need [`parse_compressed_tag`] and perhaps [`parse_tag`].
-use std::{collections::HashMap, io::Read};
+use std::{collections::BTreeMap, io::Read};
 
 use flate2::read::GzDecoder;
 use winnow::{
@@ -165,12 +165,12 @@ pub fn parse_end_payload(input: &mut &[u8]) -> ModalResult<()> {
     Ok(())
 }
 
-/// Parses a NBT compound tag's payload into a [`HashMap<String, TagPayload>`], mapping the names
+/// Parses a NBT compound tag's payload into a [`BTreeMap<String, TagPayload>`], mapping the names
 /// of tags to their payloads.
 ///
 /// For the format see [`super::serialize::write_compound_payload`].
-pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<HashMap<String, TagPayload>> {
-    let mut tags_map = HashMap::new();
+pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<BTreeMap<String, TagPayload>> {
+    let mut tags_map = BTreeMap::new();
 
     // TODO: this whole pattern should be trivially replaceable by some winnow builtin
     // combinator, use it.

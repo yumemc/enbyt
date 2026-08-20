@@ -6,7 +6,7 @@ use enbyt::{
     },
 };
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[test]
 fn test_heterogenous_list() {
@@ -62,7 +62,7 @@ fn test_empty_string_tag() {
 fn test_empty_compound_tag() {
     let mut buf = Vec::new();
 
-    let tag = Tag::new(String::new(), TagPayload::Compound(HashMap::new())).unwrap();
+    let tag = Tag::new(String::new(), TagPayload::Compound(BTreeMap::new())).unwrap();
     write_tag(&mut buf, &tag).unwrap();
 
     assert_eq!(buf, vec![0x0a, 0x00, 0x00, 0x00]);

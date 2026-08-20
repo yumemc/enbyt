@@ -1,5 +1,5 @@
 //! Contains the code for serializing binary NBT data.
-use std::{collections::HashMap, io::Write};
+use std::{collections::BTreeMap, io::Write};
 
 use flate2::{Compression, write::GzEncoder};
 
@@ -168,7 +168,7 @@ pub fn write_list_payload<W: Write>(
 /// - 0x00, which is an empty NBT tag
 pub fn write_compound_payload<W: Write>(
     w: &mut W,
-    value: &HashMap<String, TagPayload>,
+    value: &BTreeMap<String, TagPayload>,
 ) -> Result<usize, NBTError> {
     let mut written = 0;
 
