@@ -8,7 +8,7 @@ use flate2::read::GzDecoder;
 use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16, length_and_then, length_repeat},
-    combinator::{dispatch, fail, seq},
+    combinator::{dispatch, fail, repeat_till, seq},
     error::StrContext,
     token::{any, rest},
 };
@@ -144,23 +144,13 @@ pub fn parse_end_payload(input: &mut &[u8]) -> ModalResult<()> {
 ///
 /// For the format see [`super::serialize::write_compound_payload`].
 pub fn parse_compound_payload(input: &mut &[u8]) -> ModalResult<BTreeMap<String, TagPayload>> {
-    let mut tags_map = BTreeMap::new();
-
-    // TODO: this whole pattern should be trivially replaceable by some winnow builtin
-    // combinator, use it.
-    loop {
-        let is_end = parse_end_payload(input).is_ok();
-
-        if is_end {
-            break;
-        }
-
-        let tag = parse_tag.parse_next(input)?;
-
-        tags_map.insert(tag.name, tag.payload);
-    }
-
-    Ok(tags_map)
+    repeat_till(0.., parse_tag, parse_end_payload)
+        .map(|(tags, _): (Vec<Tag>, ())| {
+            tags.into_iter()
+                .map(|tag| (tag.name, tag.payload))
+                .collect::<BTreeMap<String, TagPayload>>()
+        })
+        .parse_next(input)
 }
 
 /// Parses a NBT int array tag's payload into a [`Vec<i32>`].
