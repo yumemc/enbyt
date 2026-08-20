@@ -2,6 +2,14 @@
 name = "enbyt"
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+
+authors = ["Alex Podikoglou"]
+description = "Library for Serializing/Deserializing NBT Data"
+documentation = "https://docs.rs/enbyt"
+readme = "README.md"
+repository = "https://github.com/yumemc/enbyt"
+keywords = ["minecraft", "data-format"]
 
 [dependencies]
 flate2 = "1.1.9"
