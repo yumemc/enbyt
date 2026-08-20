@@ -8,7 +8,7 @@ use flate2::read::GzDecoder;
 use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16, length_and_then, length_repeat},
-    combinator::{dispatch, fail, repeat_till, seq},
+    combinator::repeat_till,
     error::StrContext,
     token::{any, rest},
 };
@@ -245,22 +245,13 @@ pub fn parse_payload(ty: TagPayloadType) -> impl FnMut(&mut &[u8]) -> ModalResul
 /// dbg!(tag);
 /// ```
 pub fn parse_tag(input: &mut &[u8]) -> ModalResult<Tag> {
-    dispatch! { any;
-                0x01 => seq!((parse_tag_name, parse_byte_payload.map(TagPayload::Byte))).try_map(Tag::try_from),
-                0x02 => seq!((parse_tag_name, parse_short_payload.map(TagPayload::Short))).try_map(Tag::try_from),
-                0x03 => seq!((parse_tag_name, parse_int_payload.map(TagPayload::Int))).try_map(Tag::try_from),
-                0x04 => seq!((parse_tag_name, parse_long_payload.map(TagPayload::Long))).try_map(Tag::try_from),
-                0x05 => seq!((parse_tag_name, parse_float_payload.map(TagPayload::Float))).try_map(Tag::try_from),
-                0x06 => seq!((parse_tag_name, parse_double_payload.map(TagPayload::Double))).try_map(Tag::try_from),
-                0x07 => seq!((parse_tag_name, parse_byte_array_payload.map(TagPayload::ByteArray))).try_map(Tag::try_from),
-                0x08 => seq!((parse_tag_name, parse_string_payload.map(TagPayload::String))).try_map(Tag::try_from),
-                0x09 => seq!((parse_tag_name, parse_list_payload.map(|(id, tags)| TagPayload::List(id, tags)))).try_map(Tag::try_from),
-                0x0a => seq!((parse_tag_name, parse_compound_payload.map(TagPayload::Compound))).try_map(Tag::try_from),
-                0x0b => seq!((parse_tag_name, parse_int_array_payload.map(TagPayload::IntArray))).try_map(Tag::try_from),
-                0x0c => seq!((parse_tag_name, parse_long_array_payload.map(TagPayload::LongArray))).try_map(Tag::try_from),
-                _ => fail::<_,_,_>
-            }
-            .parse_next(input)
+    any.try_map(TagPayloadType::try_from)
+        .context(StrContext::Label("tag payload type id"))
+        .flat_map(|ty| {
+            (parse_tag_name, parse_payload(ty)).try_map(|(name, payload)| Tag::new(name, payload))
+        })
+        .context(StrContext::Label("tag"))
+        .parse_next(input)
 }
 
 /// Parses a gzip-compressed NBT tag from a reader implementing [`Read`].
