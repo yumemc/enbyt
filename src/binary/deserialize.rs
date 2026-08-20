@@ -101,12 +101,7 @@ pub fn parse_byte_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i8>> {
         .context(StrContext::Label("byte array length"))
         .parse_next(input)? as usize;
 
-    let mut bytes = vec![];
-
-    // TODO: make this not imperative
-    for _ in 0..len {
-        bytes.push(parse_byte_payload(input)?);
-    }
+    let bytes = repeat(0..=len, parse_byte_payload).parse_next(input)?;
 
     Ok(bytes)
 }
@@ -194,12 +189,7 @@ pub fn parse_int_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i32>> {
         .parse_next(input)? as usize;
 
     // TODO: zero copy?
-    let mut ints = vec![];
-
-    // TODO: make this not imperative
-    for _ in 0..len {
-        ints.push(parse_int_payload(input)?);
-    }
+    let ints = repeat(0..=len, parse_int_payload).parse_next(input)?;
 
     Ok(ints)
 }
@@ -214,14 +204,9 @@ pub fn parse_long_array_payload(input: &mut &[u8]) -> ModalResult<Vec<i64>> {
         .parse_next(input)? as usize;
 
     // TODO: zero copy?
-    let mut ints = vec![];
+    let longs = repeat(0..=len, parse_long_payload).parse_next(input)?;
 
-    // TODO: make this not imperative
-    for _ in 0..len {
-        ints.push(parse_long_payload(input)?);
-    }
-
-    Ok(ints)
+    Ok(longs)
 }
 
 /// Parses a NBT tag payload of a given [`TagPayloadType`] into a [`TagPayload`].
