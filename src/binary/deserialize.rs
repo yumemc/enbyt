@@ -9,7 +9,7 @@ use winnow::{
     ModalResult, Parser,
     binary::{be_f32, be_f64, be_i16, be_i32, be_i64, be_u16, length_and_then, length_repeat},
     combinator::{dispatch, fail, seq},
-    error::{ContextError, FromExternalError, StrContext},
+    error::StrContext,
     token::{any, rest},
 };
 
@@ -112,29 +112,24 @@ pub fn parse_string_payload(input: &mut &[u8]) -> ModalResult<String> {
 ///
 /// For the format see [`super::serialize::write_list_payload`].
 pub fn parse_list_payload(input: &mut &[u8]) -> ModalResult<(TagPayloadType, Vec<TagPayload>)> {
-    let tag_type_id = any
+    any.try_map(TagPayloadType::try_from)
         .context(StrContext::Label("list type id"))
-        .parse_next(input)? as i8;
-
-    let tag_type: TagPayloadType = (tag_type_id as u8).try_into().map_err(|err| {
-        winnow::error::ErrMode::Cut(ContextError::from_external_error(input, err))
-    })?;
-
-    let tags = length_repeat(
-        be_i32
-            .map(|x| x as usize)
-            .context(StrContext::Label("list size")),
-        parse_payload(tag_type).context(StrContext::Label("list item")),
-    )
-    .parse_next(input)?;
+        .flat_map(|tag_type| {
+            length_repeat(
+                be_i32
+                    .map(|x| x as usize)
+                    .context(StrContext::Label("list size")),
+                parse_payload(tag_type).context(StrContext::Label("list item")),
+            )
+            .map(move |tags: Vec<TagPayload>| (tag_type, tags))
+        })
+        .parse_next(input)
 
     // we had this previously but tests seem to pass without it? possibly fixed elsewhere
     //
     // if size < 0 {
     //     return Err(winnow::error::ErrMode::Cut(ContextError::from_input(input)));
     // }
-
-    Ok((tag_type, tags))
 }
 
 /// Parses an NBT end tag's payload.
